@@ -24,32 +24,78 @@ const uint8_t left = 16;
 const uint8_t right = 20;
 const uint8_t ctrl = 3;
 
+enum {
+    KEY_NONE = -1,
+    KEY_A = 0,
+    KEY_B,
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEY_CTRL,
+    KEY_COUNT,
+};
+
+int gpio_index(uint gpio) {
+    switch (gpio) {
+        case keyA: return KEY_A;
+        case keyB: return KEY_B;
+        case up: return KEY_UP;
+        case down: return KEY_DOWN;
+        case left: return KEY_LEFT;
+        case right: return KEY_RIGHT;
+        case ctrl: return KEY_CTRL;
+        default: return KEY_NONE;
+    }
+}
+
+struct IRQ_DATA {
+    uint32_t last_state;
+    uint8_t ctr;
+    bool triggered;
+};
+
+struct IRQ_DATA irq_data[KEY_COUNT];
+
+const uint8_t DEBOUNCE = 2;
 
 void gpio_irq(uint gpio, uint32_t events) {
-    switch (gpio) {
-        case keyA:
-            break;
-        case keyB:
-            break;
-        case up:
-            break;
-        case down:
-            break;
-        case left:
-            break;
-        case right:
-            break;
-        case ctrl:
-            break;
-        default:
-            break;
+    int8_t irq = gpio_index(gpio);
+    if (irq != KEY_NONE) {
+        irq_data[irq].last_state = events;
+        irq_data[irq].ctr = DEBOUNCE;
+        irq_data[irq].triggered = false;
     }
-
 }
+
+
+void init_irq(void) {
+    for (uint8_t i = 0; i<KEY_COUNT; i++) {
+        irq_data[i].last_state = 0;
+        irq_data[i].ctr = 0;
+        irq_data[i].triggered = false;
+    }
+    gpio_set_irq_enabled_with_callback(keyA, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_irq);
+    gpio_set_irq_enabled(keyB, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(up, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(down, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(left, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(right, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(ctrl, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+}
+
+
 
 bool repeating_timer_callback(struct repeating_timer *t) {
     if (tick_ctr) {
         tick_ctr--;
+        for (uint8_t i=0; i<KEY_COUNT; i++) {
+            if (irq_data[i].ctr) {
+                if (!--irq_data[i].ctr) {
+                    irq_data[i].triggered = true;
+                }
+            }
+        }
     } else {
         tick_ctr = 7;
         if (ctr) {
@@ -64,8 +110,6 @@ int main(void)
     set_sys_clock_48mhz();
     add_repeating_timer_ms(125, repeating_timer_callback, NULL, &timer);
 
-    gpio_set_irq_enabled_with_callback(keyA, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_irq);
-    gpio_set_irq_enabled(keyB, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
 
     DEV_Delay_ms(100);
     printf("LCD_1in14_test Demo\r\n");
@@ -165,15 +209,17 @@ int main(void)
     SET_Infrared_PIN(left);
     SET_Infrared_PIN(right);
     SET_Infrared_PIN(ctrl);
+
+    init_irq();
     
     Paint_Clear(WHITE);
-    Paint_DrawRectangle(208,12,229,32, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(208,103,229,123, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(37,35,58,55, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(37,85,58,105, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(12,60,33,80, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(62,60,83,80, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(37,60,58,80, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_EMPTY);
+    Paint_DrawRectangle(208,12,229,32, BRED, DOT_PIXEL_1X1,DRAW_FILL_EMPTY);
+    Paint_DrawRectangle(208,103,229,123, BRED, DOT_PIXEL_1X1,DRAW_FILL_EMPTY);
+    Paint_DrawRectangle(37,35,58,55, BRED, DOT_PIXEL_1X1,DRAW_FILL_EMPTY);
+    Paint_DrawRectangle(37,85,58,105, BRED, DOT_PIXEL_1X1,DRAW_FILL_EMPTY);
+    Paint_DrawRectangle(12,60,33,80, BRED, DOT_PIXEL_1X1,DRAW_FILL_EMPTY);
+    Paint_DrawRectangle(62,60,83,80, BRED, DOT_PIXEL_1X1,DRAW_FILL_EMPTY);
+    Paint_DrawRectangle(37,60,58,80, BRED, DOT_PIXEL_1X1,DRAW_FILL_EMPTY);
     LCD_1IN14_V2_Display(imageBuffer);
     
     
@@ -192,6 +238,45 @@ int main(void)
 
            LCD_1IN14_V2_DisplayWindows(0, 0, 8 * 17, 24,imageBuffer);
         }
+        if (irq_data[KEY_A].triggered) {
+            irq_data[KEY_A].triggered = false;
+            if (irq_data[KEY_A].last_state == GPIO_IRQ_EDGE_FALL) {
+                ctr = 600;
+            }
+            Paint_DrawRectangle(208,12,228,32, irq_data[KEY_A].last_state == GPIO_IRQ_EDGE_FALL ? BRED : WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
+            LCD_1IN14_V2_DisplayWindows(208,12,228,32, imageBuffer);
+        }
+        if (irq_data[KEY_B].triggered) {
+            irq_data[KEY_B].triggered = false;
+            Paint_DrawRectangle(208,103,228,123, irq_data[KEY_B].last_state == GPIO_IRQ_EDGE_FALL ? BRED : WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
+            LCD_1IN14_V2_DisplayWindows(208,103,228,123, imageBuffer);
+        }
+        if (irq_data[KEY_UP].triggered) {
+            irq_data[KEY_UP].triggered = false;
+            Paint_DrawRectangle(37,35,57,55, irq_data[KEY_UP].last_state == GPIO_IRQ_EDGE_FALL ? BRED : WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
+            LCD_1IN14_V2_DisplayWindows(37,35,57,55, imageBuffer);
+        }
+        if (irq_data[KEY_DOWN].triggered) {
+            irq_data[KEY_DOWN].triggered = false;
+            Paint_DrawRectangle(37,85,57,105, irq_data[KEY_DOWN].last_state == GPIO_IRQ_EDGE_FALL ? BRED : WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
+            LCD_1IN14_V2_DisplayWindows(37,85,57,105, imageBuffer);
+        }
+        if (irq_data[KEY_LEFT].triggered) {
+            irq_data[KEY_LEFT].triggered = false;
+            Paint_DrawRectangle(12,60,32,80, irq_data[KEY_LEFT].last_state == GPIO_IRQ_EDGE_FALL ? BRED : WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
+            LCD_1IN14_V2_DisplayWindows(12,60,32,80, imageBuffer);
+        }
+        if (irq_data[KEY_RIGHT].triggered) {
+            irq_data[KEY_RIGHT].triggered = false;
+            Paint_DrawRectangle(62,60,82,80, irq_data[KEY_RIGHT].last_state == GPIO_IRQ_EDGE_FALL ? BRED : WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
+            LCD_1IN14_V2_DisplayWindows(62,60,82,80, imageBuffer);
+        }
+        if (irq_data[KEY_CTRL].triggered) {
+            irq_data[KEY_CTRL].triggered = false;
+            Paint_DrawRectangle(37,60,57,80, irq_data[KEY_CTRL].last_state == GPIO_IRQ_EDGE_FALL ? BRED : WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
+            LCD_1IN14_V2_DisplayWindows(37,60,57,80, imageBuffer);
+        }
+        #if 0
         if(DEV_Digital_Read(keyA ) == 0){
             ctr = 600;
             Paint_DrawRectangle(208,12,228,32, 0xF800, DOT_PIXEL_2X2,DRAW_FILL_FULL);
@@ -262,6 +347,7 @@ int main(void)
             Paint_DrawRectangle(37,60,57,80, WHITE, DOT_PIXEL_2X2,DRAW_FILL_FULL);
             LCD_1IN14_V2_DisplayWindows(37,60,57,80,imageBuffer);
         }
+        #endif
     }
 
     /* Module Exit */
