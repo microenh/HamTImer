@@ -160,7 +160,7 @@ static void LCD_1IN14_V2_InitReg(void)
     LCD_1IN14_V2_SendData_8Bit(0x20);
     LCD_1IN14_V2_SendData_8Bit(0x23);
 
-    LCD_1IN14_V2_SendCommand(0x21);  //Display Inversion On 0x21
+    LCD_1IN14_V2_SendCommand(0x21);  //Display Inversion Off (0x20), On (0x21)
 
     LCD_1IN14_V2_SendCommand(0x11);  //Sleep Out
 
@@ -246,21 +246,15 @@ parameter:
 ******************************************************************************/
 void LCD_1IN14_V2_Clear(UWORD Color)
 {
-    UWORD j,i;
-    UWORD Image[LCD_1IN14_V2.WIDTH*LCD_1IN14_V2.HEIGHT];
-    
-    Color = ((Color<<8)&0xff00)|(Color>>8);
+    UBYTE low = Color;
+    UBYTE high = Color >> 8;
    
-    for (j = 0; j < LCD_1IN14_V2.HEIGHT*LCD_1IN14_V2.WIDTH; j++) {
-        Image[j] = Color;
-    }
-    
     LCD_1IN14_V2_SetWindows(0, 0, LCD_1IN14_V2.WIDTH, LCD_1IN14_V2.HEIGHT);
     DEV_Digital_Write(LCD_DC_PIN, 1);
     DEV_Digital_Write(LCD_CS_PIN, 0);
-    // printf("HEIGHT %d, WIDTH %d\r\n",LCD_1IN14_V2.HEIGHT,LCD_1IN14_V2.WIDTH);
-    for(j = 0; j < LCD_1IN14_V2.HEIGHT; j++){
-        DEV_SPI_Write_nByte((uint8_t *)&Image[j*LCD_1IN14_V2.WIDTH], LCD_1IN14_V2.WIDTH*2);
+    for (int j=0; j<LCD_1IN14_V2.HEIGHT * LCD_1IN14_V2.WIDTH; j++) {
+        DEV_SPI_WriteByte(high);
+        DEV_SPI_WriteByte(low);
     }
     DEV_Digital_Write(LCD_CS_PIN, 1);
 }

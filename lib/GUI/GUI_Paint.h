@@ -44,20 +44,30 @@ typedef enum {
 /**
  * image color
 **/
-#define WHITE          0xFFFF
-#define BLACK          0x0000
-#define BLUE           0x001F
-#define BRED           0XF81F
-#define GRED           0XFFE0
-#define GBLUE          0X07FF
-#define RED            0xF800
-#define MAGENTA        0xF81F
-#define GREEN          0x07E0
-#define CYAN           0x7FFF
-#define YELLOW         0xFFE0
-#define BROWN          0XBC40
-#define BRRED          0XFC07
-#define GRAY           0X8430
+
+// #define RGB_565(r,g,b) (((((255 - r)) & 0xf8) << 8) | ((((255 - g)) & 0xfc) << 3) | (((255 - b)) >> 3))
+#define RGB_565(r,g,b) (((((r)) & 0xf8) << 8) | (((( g)) & 0xfc) << 3) | ((( b)) >> 3))
+
+#define BLACK          RGB_565(0,0,0)       // 0x0000
+#define RED            RGB_565(127,0,0)     // 0xF800
+#define BRED           RGB_565(255,0,0)     // 0XF81F
+#define GREEN          RGB_565(0,127,0)     // 0x07E0
+#define BGREEN         RGB_565(0,255,0)     // 0x07E0
+#define BLUE           RGB_565(0,0,127)     // 0x001F
+#define BBLUE          RGB_565(0,0,255)     // 0x001F
+#define CYAN           RGB_565(0,127,127)   // 0x7FFF
+#define BCYAN          RGB_565(0,255,255)   // 0x7FFF
+#define MAGENTA        RGB_565(127,0,127)   // 0xF81F
+#define BMAGENTA       RGB_565(255,0,255)   // 0xF81F
+#define YELLOW         RGB_565(127,127,0)
+#define BYELLOW        RGB_565(255,255,0)   // 0xFFE0
+#define GRAY           RGB_565(127,127,127) // 0X8430
+#define WHITE          RGB_565(255,255,255) // 0xFFFF
+
+#define ORANGE         RGB_565(255,127,0)   // 0XFFE0
+#define PINK           RGB_565(255,0,127)   // 0XFC07
+#define LGREEN         RGB_565(0,255,127)
+#define LBLUE          RGB_565(0,127,255)
 
 #define IMAGE_BACKGROUND    WHITE
 #define FONT_FOREGROUND     BLACK
@@ -107,14 +117,14 @@ typedef enum {
  * Custom structure of a time attribute
 **/
 typedef struct {
-    UWORD	Year;  //0000
+    UWORD Year;  // 0000
     UBYTE Month; //1 - 12
     UBYTE Day;   //1 - 30
     UBYTE Hour;  //0 - 23
     UBYTE Min;   //0 - 59
     UBYTE Sec;   //0 - 59
 } PAINT_TIME;
-extern PAINT_TIME sPaint_time;
+// extern PAINT_TIME sPaint_time;
 
 //init and Clear
 void Paint_NewImage(UBYTE *image, UWORD Width, UWORD Height, UWORD Rotate, UWORD Color);
