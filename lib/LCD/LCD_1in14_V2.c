@@ -54,7 +54,7 @@ function :	send command
 parameter:
      Reg : Command register
 ******************************************************************************/
-static void LCD_1IN14_V2_SendCommand(UBYTE Reg)
+void LCD_1IN14_V2_SendCommand(UBYTE Reg)
 {
     DEV_Digital_Write(LCD_DC_PIN, 0);
     DEV_Digital_Write(LCD_CS_PIN, 0);

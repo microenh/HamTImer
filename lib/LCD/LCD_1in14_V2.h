@@ -65,4 +65,5 @@ void LCD_1IN14_V2_DisplayWindows(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Y
 void LCD_1IN14_V2_DisplayPoint(UWORD X, UWORD Y, UWORD Color);
 
 void Handler_1IN14_V2_LCD(int signo);
+void LCD_1IN14_V2_SendCommand(UBYTE reg);
 #endif

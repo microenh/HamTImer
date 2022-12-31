@@ -651,14 +651,32 @@ void Paint_DrawTime(UWORD Xstart, UWORD Ystart, PAINT_TIME *pTime, sFONT *Font,
     UWORD dx = Font->Width;
 
     // Write data into the cache
+    Paint_DrawChar(Xstart + dx * 4 + dx / 2 - dx / 4, Ystart, ':', Font, Color_Background, Color_Foreground);
+    Paint_DrawChar(Xstart + dx + dx / 4 + dx / 2, Ystart, ':', Font, Color_Background, Color_Foreground);
     Paint_DrawChar(Xstart, Ystart, value[pTime->Hour / 10], Font, Color_Background, Color_Foreground);
     Paint_DrawChar(Xstart + dx, Ystart, value[pTime->Hour % 10], Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + dx + dx / 4 + dx / 2, Ystart, ':', Font, Color_Background, Color_Foreground);
     Paint_DrawChar(Xstart + dx * 2 + dx / 2, Ystart, value[pTime->Min / 10], Font, Color_Background, Color_Foreground);
     Paint_DrawChar(Xstart + dx * 3 + dx / 2, Ystart, value[pTime->Min % 10], Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + dx * 4 + dx / 2 - dx / 4, Ystart, ':', Font, Color_Background, Color_Foreground);
     Paint_DrawChar(Xstart + dx * 5, Ystart, value[pTime->Sec / 10], Font, Color_Background, Color_Foreground);
     Paint_DrawChar(Xstart + dx * 6, Ystart, value[pTime->Sec % 10], Font, Color_Background, Color_Foreground);
+}
+
+void Paint_DrawSeconds(UWORD Xstart, UWORD Ystart, uint16_t seconds, sFONT *Font,
+                    UWORD Color_Foreground, UWORD Color_Background)
+{
+    uint8_t value[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+
+    UWORD dx = Font->Width;
+    
+    uint16_t sec = seconds % 60;
+    uint16_t min = seconds / 60;
+
+    // Write data into the cache
+    Paint_DrawChar(Xstart + dx + dx / 4 + dx / 2, Ystart, ':', Font, Color_Background, Color_Foreground);
+    Paint_DrawChar(Xstart, Ystart, (min / 10) ? value[min / 10] : ' ', Font, Color_Background, Color_Foreground);
+    Paint_DrawChar(Xstart + dx, Ystart, value[min % 10], Font, Color_Background, Color_Foreground);
+    Paint_DrawChar(Xstart + dx * 2 + dx / 2, Ystart, value[sec / 10], Font, Color_Background, Color_Foreground);
+    Paint_DrawChar(Xstart + dx * 3 + dx / 2, Ystart, value[sec % 10], Font, Color_Background, Color_Foreground);
 }
 
 void Paint_DrawImage(const unsigned char *image, UWORD xStart, UWORD yStart, UWORD W_Image, UWORD H_Image)
