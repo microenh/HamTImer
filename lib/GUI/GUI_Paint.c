@@ -567,7 +567,7 @@ parameter:
     Color_Foreground : Select the foreground color
     Color_Background : Select the background color
 ******************************************************************************/
-void Paint_DrawString_EN(UWORD Xstart, UWORD Ystart, const char *pString,
+void Paint_DrawString(UWORD Xstart, UWORD Ystart, const char *pString,
                          const sFONT *Font, UWORD Color_Foreground, UWORD Color_Background)
 {
     UWORD Xpoint = Xstart;
@@ -575,7 +575,7 @@ void Paint_DrawString_EN(UWORD Xstart, UWORD Ystart, const char *pString,
 
     if (Xstart > Paint.Width || Ystart > Paint.Height)
     {
-        Debug("Paint_DrawString_EN Input exceeds the normal display range\r\n");
+        Debug("Paint_DrawString Input exceeds the normal display range\r\n");
         return;
     }
 
@@ -628,7 +628,7 @@ void Paint_DrawNum(UWORD Xpoint, UWORD Ypoint, double Nummber,
     if (Digit == 0)
         *(pStr + strlen(Str) - 2) = '\0';
     // show
-    Paint_DrawString_EN(Xpoint, Ypoint, (const char *)pStr, Font, Color_Foreground, Color_Background);
+    Paint_DrawString(Xpoint, Ypoint, (const char *)pStr, Font, Color_Foreground, Color_Background);
     free(pStr);
     pStr = NULL;
 }
@@ -661,22 +661,48 @@ void Paint_DrawTime(UWORD Xstart, UWORD Ystart, PAINT_TIME *pTime, const sFONT *
     Paint_DrawChar(Xstart + dx * 6, Ystart, value[pTime->Sec % 10], Font, Color_Background, Color_Foreground);
 }
 
-void Paint_DrawSeconds(UWORD Xstart, UWORD Ystart, uint16_t seconds, const sFONT *Font,
-                    UWORD Color_Foreground, UWORD Color_Background)
-{
-    uint8_t value[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+static void do_digit(const sFONT *font, const uint16_t xstart, const uint16_t ystart, const uint16_t background, uint16_t const foreground, const u_char digit) {
+    Paint_DrawChar(xstart, ystart, digit, font, background, foreground);
+    LCD_1IN14_V2_DisplayWindows(xstart, ystart, xstart + font->Width, ystart + font->Height, (UWORD *) Paint.Image);
+    LCD_1IN14_V2_DisplayWindows(xstart, ystart, xstart + font->Width, ystart + font->Height, (UWORD *) Paint.Image);
+}
 
+void Paint_DrawSeconds(UWORD Xstart, UWORD Ystart, uint16_t seconds, const sFONT *Font,
+                    UWORD Color_Foreground, UWORD Color_Background, uint16_t prev_seconds)
+{
     UWORD dx = Font->Width;
     
-    uint16_t sec = seconds % 60;
-    uint16_t min = seconds / 60;
+    uint8_t sec = seconds % 60;
+    uint8_t prev_sec = prev_seconds % 60;
+    uint8_t min = seconds / 60;
+    uint8_t prev_min = prev_seconds / 60;
 
-    // Write data into the cache
-    Paint_DrawChar(Xstart + dx + dx / 4 + dx / 2, Ystart, ':', Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart, Ystart, (min / 10) ? value[min / 10] : ' ', Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + dx, Ystart, value[min % 10], Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + dx * 2 + dx / 2, Ystart, value[sec / 10], Font, Color_Background, Color_Foreground);
-    Paint_DrawChar(Xstart + dx * 3 + dx / 2, Ystart, value[sec % 10], Font, Color_Background, Color_Foreground);
+    uint8_t sec01 = sec % 10;
+    uint8_t sec10 = sec / 10;
+    uint8_t min01 = min % 10;
+    uint8_t min10 = min / 10;
+
+    uint8_t prev_sec01 = prev_sec % 10;
+    uint8_t prev_sec10 = prev_sec / 10;
+    uint8_t prev_min01 = prev_min % 10;
+    uint8_t prev_min10 = prev_min / 10;
+
+    // Update display where needed by digit
+    if (!prev_seconds) {
+        do_digit(Font, Xstart + 7 * dx / 4, Ystart, Color_Background, Color_Foreground, ':');
+    }
+    if (!prev_seconds || prev_min10 != min10) {
+        do_digit(Font, Xstart, Ystart, Color_Background, Color_Foreground, min10 ? min10 + '0' : ' ');
+    }
+    if (!prev_seconds || prev_min01 != min01) {
+        do_digit(Font, Xstart + dx, Ystart, Color_Background, Color_Foreground, min01 + '0');
+    }
+    if (!prev_seconds || prev_sec10 != sec10) {
+        do_digit(Font, Xstart + 5 * dx / 2, Ystart, Color_Background, Color_Foreground, sec10 + '0');
+    }
+    if (!prev_seconds || prev_sec01 != sec01) {
+        do_digit(Font, Xstart + 7 * dx / 2, Ystart, Color_Background, Color_Foreground, sec01 + '0');
+    }
 }
 
 void Paint_DrawImage(const unsigned char *image, UWORD xStart, UWORD yStart, UWORD W_Image, UWORD H_Image)

@@ -3,6 +3,7 @@
 
 #include "DEV_Config.h"
 #include "../Fonts/fonts.h"
+#include "../LCD/LCD_1in14_V2.h"
 
 /**
  * Image attributes
@@ -145,10 +146,11 @@ void Paint_DrawCircle(UWORD X_Center, UWORD Y_Center, UWORD Radius, UWORD Color,
 
 //Display string
 void Paint_DrawChar(UWORD Xstart, UWORD Ystart, const char Acsii_Char, const sFONT* Font, UWORD Color_Foreground, UWORD Color_Background);
-void Paint_DrawString_EN(UWORD Xstart, UWORD Ystart, const char * pString, const sFONT* Font, UWORD Color_Foreground, UWORD Color_Background);
+void Paint_DrawString(UWORD Xstart, UWORD Ystart, const char * pString, const sFONT* Font, UWORD Color_Foreground, UWORD Color_Background);
 void Paint_DrawNum(UWORD Xpoint, UWORD Ypoint, double Nummber, const sFONT* Font, UWORD Digit,UWORD Color_Foreground, UWORD Color_Background);
 void Paint_DrawTime(UWORD Xstart, UWORD Ystart, PAINT_TIME *pTime, const sFONT* Font, UWORD Color_Foreground, UWORD Color_Background);
-void Paint_DrawSeconds(UWORD Xstart, UWORD Ystart, uint16_t seconds, const sFONT* Font, UWORD Color_Foreground, UWORD Color_Background);
+void Paint_DrawSeconds(UWORD Xstart, UWORD Ystart, uint16_t seconds, const sFONT *Font,
+                    UWORD Color_Foreground, UWORD Color_Background, uint16_t prev_seconds);
 
 //pic
 void Paint_DrawBitMap(const unsigned char* image_buffer);

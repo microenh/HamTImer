@@ -5,6 +5,7 @@
 #include "ImageData.h"
 #include "Debug.h"
 #include <stdlib.h> // malloc() free()
+#include <string.h>
 #include "pico/stdlib.h"
 
 #include "Infrared.h"
@@ -13,6 +14,11 @@ const uint8_t DEBOUNCE = 1;  // 125 Hz ticks
 const uint8_t FLASH_CTR = 1;  // 125 Hz ticks
 const sFONT* fontA = &Liberation48;
 const sFONT* fontB = &Liberation36;
+const char* TO_MSG = "TIME OUT";  // 8 char max w/ 36 pt
+const char* ID_MSG = "ID";  // 6 char max w / 48 pt
+
+const uint yStartTop = 10;
+
 
 // GPIO pins for buttons
 const uint8_t keyA = 15; 
@@ -29,8 +35,13 @@ const u_int16_t CTRA = 600;
 const u_int16_t CTRB = 120;
 const u_int8_t pwm = 5;
 const bool flash = true;
-const bool twoTimers = false;
+const bool twoTimers = true;
 
+
+// colors
+const u_int16_t BACKGROUND = BLACK;
+const u_int16_t A_FOREGROUND = WHITE;
+const u_int16_t B_FOREGROUND = BYELLOW;
 
 // updated by irq
 volatile uint16_t ctrA = CTRA;
@@ -143,6 +154,7 @@ int main(void)
 
     set_sys_clock_48mhz();
     add_repeating_timer_ms(125, repeating_timer_callback, NULL, &timer);
+    const uint yStartB = (LCD_1IN14_V2_WIDTH) - fontB->Height - yStartTop;
 
     sleep_ms(100);
     printf("LCD_1in14_test Demo\r\n");
@@ -154,7 +166,7 @@ int main(void)
     LCD_1IN14_V2_Init(HORIZONTAL);
 
     DEV_SET_PWM(0);
-    LCD_1IN14_V2_Clear(BLACK);
+    LCD_1IN14_V2_Clear(BACKGROUND);
 
     // LCD_1IN14_V2_Clear(BLACK);
     // LCD_1IN14_V2_Clear(RED);
@@ -182,7 +194,7 @@ int main(void)
         exit(0);
     }
     // /*1.Create a new image cache named IMAGE_RGB and fill it with white*/
-    Paint_NewImage((UBYTE *)imageBuffer, LCD_1IN14_V2.WIDTH, LCD_1IN14_V2.HEIGHT, 0, BLACK);
+    Paint_NewImage((UBYTE *)imageBuffer, LCD_1IN14_V2.WIDTH, LCD_1IN14_V2.HEIGHT, 0, BACKGROUND);
     Paint_SetScale(65);
     
     // /*2.Drawing on the image*/
@@ -201,15 +213,19 @@ int main(void)
  
     uint widthA = 4 * fontA->Width + fontA->Width / 2;
     uint xStartA = (LCD_1IN14_V2_HEIGHT - widthA) / 2;
-    uint xStartAT = (LCD_1IN14_V2_HEIGHT - 2 * fontA->Width) / 2;
-    const uint yStartA = twoTimers ? 10 : (LCD_1IN14_V2_WIDTH - fontA->Height) / 2;
+    uint xStartAT = (LCD_1IN14_V2_HEIGHT - strlen(ID_MSG) * fontA->Width) / 2;
+    const uint yStartA = twoTimers ? yStartTop : (LCD_1IN14_V2_WIDTH - fontA->Height) / 2;
 
     uint widthB = 4 * fontB->Width + fontB->Width / 2;
     uint xStartB = (LCD_1IN14_V2_HEIGHT - widthB) / 2;
-    uint xStartBT = (LCD_1IN14_V2_HEIGHT - 2 * fontB->Width) / 2;
-    const uint yStartB = 90;
+    uint xStartBT = (LCD_1IN14_V2_HEIGHT - strlen(TO_MSG) * fontB->Width) / 2;
+    
+    uint16_t prev_ctrA;
+    uint16_t prev_ctrB;
 
     DEV_SET_PWM(pwm);
+
+    Paint_Clear(BACKGROUND);
 
     while(1){
         if (do_clear_flash) {
@@ -221,24 +237,26 @@ int main(void)
             do_tickA = false;
             if (ctrA)
             {
-                Paint_DrawSeconds(xStartA, yStartA, ctrA, fontA, WHITE, BLACK);
+                Paint_DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
+                prev_ctrA = ctrA;
             } else {
-                Paint_ClearWindows(xStartA, yStartA, xStartA + widthA, yStartA + fontA->Height, BLACK);
-                Paint_DrawString_EN(xStartAT, yStartA, "ID", fontA, WHITE, BLACK);
+                Paint_ClearWindows(0, yStartA, LCD_1IN14_V2_HEIGHT, yStartA + fontA->Height, BACKGROUND);
+                Paint_DrawString(xStartAT, yStartA, ID_MSG, fontA, A_FOREGROUND, BLACK);
+                LCD_1IN14_V2_DisplayWindows(0, yStartA, LCD_1IN14_V2_HEIGHT, yStartA + fontA->Height, imageBuffer);
             }
-                LCD_1IN14_V2_DisplayWindows(xStartA, yStartA, xStartA + widthA, yStartA + fontA->Height, imageBuffer);
-        }
+       }
 
         if (do_tickB)
         {
             do_tickB = false;
             if (ctrB) {
-                Paint_DrawSeconds(xStartB, yStartB, ctrB, fontB, BYELLOW, BLACK);
+                Paint_DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
+                prev_ctrB = ctrB;
             } else {
-                Paint_ClearWindows(xStartB, yStartB, xStartB + widthB, yStartB + fontB->Height, BLACK);
-                Paint_DrawString_EN(xStartBT, yStartB, "TO", fontB, BYELLOW, BLACK);
+                Paint_ClearWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, BACKGROUND);
+                Paint_DrawString(xStartBT, yStartB, TO_MSG, fontB, B_FOREGROUND, BACKGROUND);
+                LCD_1IN14_V2_DisplayWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, imageBuffer);
             }
-            LCD_1IN14_V2_DisplayWindows(xStartB, yStartB, xStartB + widthB, yStartB + fontB->Height, imageBuffer);
         }
 
         if (do_invert) {
@@ -252,8 +270,15 @@ int main(void)
             if (irq_data[KEY_A].last_state == GPIO_IRQ_EDGE_FALL) {
                 do_flash();
                 ctrA = CTRA;
-                if (!ctrB)
+                prev_ctrA = 0;
+                Paint_ClearWindows(0, yStartA, LCD_1IN14_V2_HEIGHT, yStartA + fontA->Height, BACKGROUND);
+                LCD_1IN14_V2_DisplayWindows(0, yStartA, LCD_1IN14_V2_HEIGHT, yStartA + fontA->Height, imageBuffer);
+                if (!ctrB) {
                     ctrB = CTRB;
+                    prev_ctrB = 0;
+                    Paint_ClearWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, BACKGROUND);
+                    LCD_1IN14_V2_DisplayWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, imageBuffer);
+                }
             }
         }
         if (irq_data[KEY_B].triggered) {
@@ -261,6 +286,9 @@ int main(void)
             if (irq_data[KEY_B].last_state == GPIO_IRQ_EDGE_FALL && twoTimers) {
                 do_flash();
                 ctrB = CTRB;
+                prev_ctrB = 0;
+                Paint_ClearWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, BACKGROUND);
+                LCD_1IN14_V2_DisplayWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, imageBuffer);
             }
         }
         if (irq_data[KEY_UP].triggered) {
