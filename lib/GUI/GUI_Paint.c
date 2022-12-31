@@ -533,7 +533,7 @@ parameter:
     background : Select the background color
 ******************************************************************************/
 void Paint_DrawChar(UWORD xpoint, UWORD ypoint, const char ascii_char,
-                    sFONT *font, UWORD foreground, UWORD background)
+                    const sFONT *font, UWORD foreground, UWORD background)
 {
     if (xpoint > Paint.Width || ypoint > Paint.Height)
     {
@@ -568,7 +568,7 @@ parameter:
     Color_Background : Select the background color
 ******************************************************************************/
 void Paint_DrawString_EN(UWORD Xstart, UWORD Ystart, const char *pString,
-                         sFONT *Font, UWORD Color_Foreground, UWORD Color_Background)
+                         const sFONT *Font, UWORD Color_Foreground, UWORD Color_Background)
 {
     UWORD Xpoint = Xstart;
     UWORD Ypoint = Ystart;
@@ -618,7 +618,7 @@ parameter:
 ******************************************************************************/
 #define ARRAY_LEN 255
 void Paint_DrawNum(UWORD Xpoint, UWORD Ypoint, double Nummber,
-                   sFONT *Font, UWORD Digit, UWORD Color_Foreground, UWORD Color_Background)
+                   const sFONT *Font, UWORD Digit, UWORD Color_Foreground, UWORD Color_Background)
 {
     char Str[ARRAY_LEN];
     sprintf(Str, "%.*lf", Digit + 1, Nummber);
@@ -643,7 +643,7 @@ parameter:
     Color_Foreground : Select the foreground color
     Color_Background : Select the background color
 ******************************************************************************/
-void Paint_DrawTime(UWORD Xstart, UWORD Ystart, PAINT_TIME *pTime, sFONT *Font,
+void Paint_DrawTime(UWORD Xstart, UWORD Ystart, PAINT_TIME *pTime, const sFONT *Font,
                     UWORD Color_Foreground, UWORD Color_Background)
 {
     uint8_t value[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
@@ -661,7 +661,7 @@ void Paint_DrawTime(UWORD Xstart, UWORD Ystart, PAINT_TIME *pTime, sFONT *Font,
     Paint_DrawChar(Xstart + dx * 6, Ystart, value[pTime->Sec % 10], Font, Color_Background, Color_Foreground);
 }
 
-void Paint_DrawSeconds(UWORD Xstart, UWORD Ystart, uint16_t seconds, sFONT *Font,
+void Paint_DrawSeconds(UWORD Xstart, UWORD Ystart, uint16_t seconds, const sFONT *Font,
                     UWORD Color_Foreground, UWORD Color_Background)
 {
     uint8_t value[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};

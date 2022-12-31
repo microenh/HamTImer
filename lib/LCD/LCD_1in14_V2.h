@@ -63,7 +63,7 @@ void LCD_1IN14_V2_Clear(UWORD Color);
 void LCD_1IN14_V2_Display(UWORD *Image);
 void LCD_1IN14_V2_DisplayWindows(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend, UWORD *Image);
 void LCD_1IN14_V2_DisplayPoint(UWORD X, UWORD Y, UWORD Color);
-
 void Handler_1IN14_V2_LCD(int signo);
-void LCD_1IN14_V2_SendCommand(UBYTE reg);
+
+void LCD_1IN14_V2_Invert(bool invert);
 #endif

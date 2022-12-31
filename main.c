@@ -9,29 +9,38 @@
 
 #include "Infrared.h"
 
-struct repeating_timer timer;
+const uint8_t DEBOUNCE = 1;  // 125 Hz ticks
+const uint8_t FLASH_CTR = 1;  // 125 Hz ticks
+const sFONT* fontA = &Liberation48;
+const sFONT* fontB = &Liberation36;
 
-const u_int16_t CTRA = 600;
-const u_int16_t CTRB = 120;
-
-volatile uint16_t ctrA = CTRA;
-volatile uint16_t ctrB = CTRB;
-volatile bool do_tickA = false;
-volatile bool do_tickB = false;
-volatile bool do_timeoutA = false;
-volatile bool do_timeoutB = false;
-volatile bool do_invert = false;
-volatile uint8_t tick_ctr = 0;
-
+// GPIO pins for buttons
 const uint8_t keyA = 15; 
 const uint8_t keyB = 17; 
-
 const uint8_t up = 2;
 const uint8_t down = 18;
 const uint8_t left = 16;
 const uint8_t right = 20;
 const uint8_t ctrl = 3;
 
+
+// TBA: EEPROM
+const u_int16_t CTRA = 600;
+const u_int16_t CTRB = 120;
+const u_int8_t pwm = 5;
+const bool flash = true;
+const bool twoTimers = false;
+
+
+// updated by irq
+volatile uint16_t ctrA = CTRA;
+volatile uint16_t ctrB = CTRB;
+volatile bool do_tickA = false;
+volatile bool do_tickB = false;
+volatile bool do_invert = false;
+volatile bool in_flash_ctr = 0;
+volatile bool do_clear_flash = false;
+volatile uint8_t tick_ctr = 0;
 
 enum {
     KEY_NONE = -1,
@@ -66,7 +75,6 @@ struct IRQ_DATA {
 
 struct IRQ_DATA irq_data[KEY_COUNT];
 
-const uint8_t DEBOUNCE = 2;
 
 void gpio_irq(uint gpio, uint32_t events) {
     int8_t irq = gpio_index(gpio);
@@ -94,8 +102,12 @@ void init_irq(void) {
 }
 
 
-
 bool repeating_timer_callback(struct repeating_timer *t) {
+    if (in_flash_ctr) {
+        if (!--in_flash_ctr) {
+            do_clear_flash = true;
+        }
+    }
     if (tick_ctr) {
         tick_ctr--;
         for (uint8_t i=0; i<KEY_COUNT; i++) {
@@ -109,30 +121,30 @@ bool repeating_timer_callback(struct repeating_timer *t) {
         tick_ctr = 7;
         if (ctrA) {
             ctrA--;
-            if (ctrA)
-                do_tickA = true;
-            else
-                do_timeoutA = true;  
+            do_tickA = true;
         } else {
-            do_invert = true;
+            do_invert = flash;
         }
-        if (ctrB) {
+        if (twoTimers && ctrB) {
             ctrB--;
-            if (ctrB) 
-                do_tickB = true;
-            else
-                do_timeoutB = true;
+            do_tickB = true;
         }
     }
 }
 
+void do_flash() {
+    LCD_1IN14_V2_Invert(false);
+    in_flash_ctr = FLASH_CTR;    
+}
+
 int main(void)
 {
+    static struct repeating_timer timer;
+
     set_sys_clock_48mhz();
     add_repeating_timer_ms(125, repeating_timer_callback, NULL, &timer);
 
-
-    DEV_Delay_ms(100);
+    sleep_ms(100);
     printf("LCD_1in14_test Demo\r\n");
     if(DEV_Module_Init()!=0){
         return -1;
@@ -143,7 +155,6 @@ int main(void)
 
     DEV_SET_PWM(0);
     LCD_1IN14_V2_Clear(BLACK);
-
 
     // LCD_1IN14_V2_Clear(BLACK);
     // LCD_1IN14_V2_Clear(RED);
@@ -186,61 +197,60 @@ int main(void)
 
     init_irq();
         
-    sFONT fontA = Liberation48;
-    sFONT fontB = Liberation36;
     bool inverse = false;
  
-    uint widthA = 4 * fontA.Width + fontA.Width / 2;
+    uint widthA = 4 * fontA->Width + fontA->Width / 2;
     uint xStartA = (LCD_1IN14_V2_HEIGHT - widthA) / 2;
-    uint xStartAT = (LCD_1IN14_V2_HEIGHT - 2 * fontA.Width) / 2;
-    const uint yStartA = 10;
+    uint xStartAT = (LCD_1IN14_V2_HEIGHT - 2 * fontA->Width) / 2;
+    const uint yStartA = twoTimers ? 10 : (LCD_1IN14_V2_WIDTH - fontA->Height) / 2;
 
-    uint widthB = 4 * fontB.Width + fontB.Width / 2;
+    uint widthB = 4 * fontB->Width + fontB->Width / 2;
     uint xStartB = (LCD_1IN14_V2_HEIGHT - widthB) / 2;
-    uint xStartBT = (LCD_1IN14_V2_HEIGHT - 2 * fontB.Width) / 2;
+    uint xStartBT = (LCD_1IN14_V2_HEIGHT - 2 * fontB->Width) / 2;
     const uint yStartB = 90;
 
-    DEV_SET_PWM(5);
+    DEV_SET_PWM(pwm);
 
     while(1){
+        if (do_clear_flash) {
+            do_clear_flash = false;
+            LCD_1IN14_V2_Invert(true);
+        }
         if (do_tickA)
         {
             do_tickA = false;
-            Paint_DrawSeconds(xStartA, yStartA, ctrA, &fontA, WHITE, BLACK);
-            LCD_1IN14_V2_DisplayWindows(xStartA, yStartA, xStartA + widthA, yStartA + fontA.Height, imageBuffer);
+            if (ctrA)
+            {
+                Paint_DrawSeconds(xStartA, yStartA, ctrA, fontA, WHITE, BLACK);
+            } else {
+                Paint_ClearWindows(xStartA, yStartA, xStartA + widthA, yStartA + fontA->Height, BLACK);
+                Paint_DrawString_EN(xStartAT, yStartA, "ID", fontA, WHITE, BLACK);
+            }
+                LCD_1IN14_V2_DisplayWindows(xStartA, yStartA, xStartA + widthA, yStartA + fontA->Height, imageBuffer);
         }
 
         if (do_tickB)
         {
             do_tickB = false;
-            Paint_DrawSeconds(xStartB, yStartB, ctrB, &fontB, BYELLOW, BLACK);
-            LCD_1IN14_V2_DisplayWindows(xStartB, yStartB, xStartB + widthB, yStartB + fontB.Height, imageBuffer);
-        }
-
-        if (do_timeoutA) {
-            do_timeoutA = false;
-            Paint_ClearWindows(xStartA, yStartA, xStartA + widthA, yStartA + fontA.Height, BLACK);
-            Paint_DrawString_EN(xStartAT, yStartA, "ID", &fontA, WHITE, BLACK);
-            LCD_1IN14_V2_DisplayWindows(xStartA, yStartA, xStartA + widthA, yStartA + fontA.Height, imageBuffer);
-        }
-
-        if (do_timeoutB) {
-            do_timeoutB = false;
-            Paint_ClearWindows(xStartB, yStartB, xStartB + widthB, yStartB + fontB.Height, BLACK);
-            Paint_DrawString_EN(xStartBT, yStartB, "TO", &fontB, BYELLOW, BLACK);
-            LCD_1IN14_V2_DisplayWindows(xStartB, yStartB, xStartB + widthB, yStartB + fontB.Height, imageBuffer);
+            if (ctrB) {
+                Paint_DrawSeconds(xStartB, yStartB, ctrB, fontB, BYELLOW, BLACK);
+            } else {
+                Paint_ClearWindows(xStartB, yStartB, xStartB + widthB, yStartB + fontB->Height, BLACK);
+                Paint_DrawString_EN(xStartBT, yStartB, "TO", fontB, BYELLOW, BLACK);
+            }
+            LCD_1IN14_V2_DisplayWindows(xStartB, yStartB, xStartB + widthB, yStartB + fontB->Height, imageBuffer);
         }
 
         if (do_invert) {
             do_invert = false;
-            LCD_1IN14_V2_SendCommand(inverse ? 0x21 : 0x20);
+            LCD_1IN14_V2_Invert(inverse);
             inverse = !inverse;
         }
 
         if (irq_data[KEY_A].triggered) {
             irq_data[KEY_A].triggered = false;
-            LCD_1IN14_V2_SendCommand(0x21);
             if (irq_data[KEY_A].last_state == GPIO_IRQ_EDGE_FALL) {
+                do_flash();
                 ctrA = CTRA;
                 if (!ctrB)
                     ctrB = CTRB;
@@ -248,7 +258,8 @@ int main(void)
         }
         if (irq_data[KEY_B].triggered) {
             irq_data[KEY_B].triggered = false;
-            if (irq_data[KEY_B].last_state == GPIO_IRQ_EDGE_FALL) {
+            if (irq_data[KEY_B].last_state == GPIO_IRQ_EDGE_FALL && twoTimers) {
+                do_flash();
                 ctrB = CTRB;
             }
         }

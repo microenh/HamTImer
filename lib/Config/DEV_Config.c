@@ -152,7 +152,6 @@ UBYTE DEV_Module_Init(void)
     // GPIO Config
     DEV_GPIO_Init();
     
-    
     // PWM Config
     gpio_set_function(LCD_BL_PIN, GPIO_FUNC_PWM);
     slice_num = pwm_gpio_to_slice_num(LCD_BL_PIN);

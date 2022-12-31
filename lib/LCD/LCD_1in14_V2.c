@@ -54,7 +54,7 @@ function :	send command
 parameter:
      Reg : Command register
 ******************************************************************************/
-void LCD_1IN14_V2_SendCommand(UBYTE Reg)
+static void LCD_1IN14_V2_SendCommand(UBYTE Reg)
 {
     DEV_Digital_Write(LCD_DC_PIN, 0);
     DEV_Digital_Write(LCD_CS_PIN, 0);
@@ -313,6 +313,10 @@ void LCD_1IN14_V2_DisplayPoint(UWORD X, UWORD Y, UWORD Color)
 {
     LCD_1IN14_V2_SetWindows(X,Y,X,Y);
     LCD_1IN14_V2_SendData_16Bit(Color);
+}
+
+void LCD_1IN14_V2_Invert(bool invert) {
+    LCD_1IN14_V2_SendCommand(invert ? 0x21 : 0x20);
 }
 
 void  Handler_1IN14_V2_LCD(int signo)
