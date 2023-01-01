@@ -35,9 +35,8 @@
 #ifndef __DEBUG_H
 #define __DEBUG_H
 
-#include <stdio.h>
-
-#if DEBUG
+#ifndef NDEBUG
+	#include <stdio.h>
 	#define Debug(__info,...) printf("Debug: " __info,##__VA_ARGS__)
 #else
 	#define Debug(__info,...)  

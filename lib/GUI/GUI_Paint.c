@@ -23,7 +23,7 @@ void Paint_DrawStringDirect(UWORD Xstart, UWORD Ystart, const char *pString,
     UWORD Xpoint = Xstart;
     UWORD Ypoint = Ystart;
 
-    if (Xstart > LCD_1IN14_V2_HEIGHT || Ystart > LCD_1IN14_V2_WIDTH)
+    if (Xstart > LCD_1IN14_V2.WIDTH || Ystart > LCD_1IN14_V2.HEIGHT)
     {
         Debug("Paint_DrawString Input exceeds the normal display range\r\n");
         return;
@@ -32,7 +32,7 @@ void Paint_DrawStringDirect(UWORD Xstart, UWORD Ystart, const char *pString,
     while (*pString != '\0')
     {
         // if X direction filled , reposition to(Xstart,Ypoint),Ypoint is Y direction plus the Height of the character
-        if ((Xpoint + Font->Width) > LCD_1IN14_V2_HEIGHT)
+        if ((Xpoint + Font->Width) > LCD_1IN14_V2.WIDTH)
         {
             Xpoint = Xstart;
             Ypoint += Font->Height;

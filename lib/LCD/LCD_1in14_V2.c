@@ -27,14 +27,8 @@
 #
 ******************************************************************************/
 #include "LCD_1in14_V2.h"
-#include "DEV_Config.h"
-#include "../Fonts/fonts.h"
-
-#include <stdlib.h>		//itoa()
-#include <stdio.h>
 
 LCD_1IN14_V2_ATTRIBUTES LCD_1IN14_V2;
-
 
 /******************************************************************************
 function :	Hardware reset
@@ -238,7 +232,7 @@ void LCD_1IN14_V2_SetWindows(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend)
     LCD_1IN14_V2_SendData_16Bit(Yend-1	  +y);
 
     LCD_1IN14_V2_SendCommand(0X2C);  // RAMWR
-    // printf("%d %d\r\n",x,y);
+    // Debug("%d %d\r\n",x,y);
 }
 
 /******************************************************************************
@@ -315,12 +309,4 @@ void LCD_1IN14_V2_Char(const uint16_t x, const uint16_t y, const sFONT *font, co
 
 void LCD_1IN14_V2_Invert(bool invert) {
     LCD_1IN14_V2_SendCommand(invert ? 0x21 : 0x20);
-}
-
-void  Handler_1IN14_V2_LCD(int signo)
-{
-    //System Exit
-    printf("\r\nHandler:Program stop\r\n");     
-    DEV_Module_Exit();
-	exit(0);
 }

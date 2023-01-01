@@ -2,7 +2,6 @@
 
 #include "DEV_Config.h"
 #include "GUI_Paint.h"
-#include "Debug.h"
 #include <stdlib.h> // malloc() free()
 #include <string.h>
 #include "pico/stdlib.h"
@@ -30,8 +29,8 @@ const uint8_t ctrl = 3;
 
 
 // TBA: EEPROM
-const u_int16_t CTRA = 20;
-const u_int16_t CTRB = 10;
+const u_int16_t CTRA = 10;
+const u_int16_t CTRB = 5;
 const u_int8_t pwm = 5;
 const bool flash = true;
 const bool twoTimers = true;
@@ -179,13 +178,13 @@ int main(void)
     bool inverse = false;
  
     uint widthA = 4 * fontA->Width + fontA->Width / 2;
-    uint xStartA = (LCD_1IN14_V2_HEIGHT - widthA) / 2;
-    uint xStartAT = (LCD_1IN14_V2_HEIGHT - strlen(ID_MSG) * fontA->Width) / 2;
-    const uint yStartA = twoTimers ? yStartTop : (LCD_1IN14_V2_WIDTH - fontA->Height) / 2;
+    uint xStartA = (LCD_1IN14_V2.WIDTH - widthA) / 2;
+    uint xStartAT = (LCD_1IN14_V2.WIDTH - strlen(ID_MSG) * fontA->Width) / 2;
+    const uint yStartA = twoTimers ? yStartTop : (LCD_1IN14_V2.HEIGHT - fontA->Height) / 2;
 
     uint widthB = 4 * fontB->Width + fontB->Width / 2;
-    uint xStartB = (LCD_1IN14_V2_HEIGHT - widthB) / 2;
-    uint xStartBT = (LCD_1IN14_V2_HEIGHT - strlen(TO_MSG) * fontB->Width) / 2;
+    uint xStartB = (LCD_1IN14_V2.WIDTH - widthB) / 2;
+    uint xStartBT = (LCD_1IN14_V2.WIDTH - strlen(TO_MSG) * fontB->Width) / 2;
     
     uint16_t prev_ctrA;
     uint16_t prev_ctrB;
@@ -205,7 +204,7 @@ int main(void)
                 Paint_DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
                 prev_ctrA = ctrA;
             } else {
-                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartA, LCD_1IN14_V2_HEIGHT, fontA->Height);
+                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartA, LCD_1IN14_V2.WIDTH, fontA->Height);
                 Paint_DrawStringDirect(xStartAT, yStartA, ID_MSG, fontA, A_FOREGROUND, BACKGROUND);
             }
        }
@@ -217,7 +216,7 @@ int main(void)
                 Paint_DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
                 prev_ctrB = ctrB;
             } else {
-                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2_HEIGHT, fontB->Height);
+                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2.WIDTH, fontB->Height);
                 Paint_DrawStringDirect(xStartBT, yStartB, TO_MSG, fontB, B_FOREGROUND, BACKGROUND);
             }
         }
@@ -234,11 +233,11 @@ int main(void)
                 do_flash();
                 ctrA = CTRA;
                 prev_ctrA = 0;
-                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartA, LCD_1IN14_V2_HEIGHT, fontA->Height);
+                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartA, LCD_1IN14_V2.WIDTH, fontA->Height);
                 if (!ctrB) {
                     ctrB = CTRB;
                     prev_ctrB = 0;
-                    LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2_HEIGHT, fontB->Height);
+                    LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2.WIDTH, fontB->Height);
                 }
             }
         }
@@ -248,7 +247,7 @@ int main(void)
                 do_flash();
                 ctrB = CTRB;
                 prev_ctrB = 0;
-                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2_HEIGHT, fontB->Height);
+                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2.WIDTH, fontB->Height);
             }
         }
         if (irq_data[KEY_UP].triggered) {

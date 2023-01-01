@@ -29,43 +29,29 @@
 #ifndef __LCD_1IN14_V2_H
 #define __LCD_1IN14_V2_H
 
-
 #include "DEV_Config.h"
 #include "../Fonts/fonts.h"
 #include <stdint.h>
 
-#include <stdlib.h>     //itoa()
-#include <stdio.h>
-
-
 #define LCD_1IN14_V2_HEIGHT 240
-#define LCD_1IN14_V2_WIDTH 135
-
+#define LCD_1IN14_V2_WIDTH  135
 
 #define HORIZONTAL 0
 #define VERTICAL   1
 
-#define LCD_1IN14_V2_SetBacklight(Value) ; 
-
-
 typedef struct{
-    UWORD WIDTH;
-    UWORD HEIGHT;
-    UBYTE SCAN_DIR;
-}LCD_1IN14_V2_ATTRIBUTES;
+    uint16_t WIDTH;
+    uint16_t HEIGHT;
+    uint8_t  SCAN_DIR;
+} LCD_1IN14_V2_ATTRIBUTES;
 extern LCD_1IN14_V2_ATTRIBUTES LCD_1IN14_V2;
 
-/********************************************************************************
-function:	
-			Macro definition variable name
-********************************************************************************/
-void LCD_1IN14_V2_Init(UBYTE Scan_dir);
-void LCD_1IN14_V2_Clear(UWORD Color);
-void Handler_1IN14_V2_LCD(int signo);
+void LCD_1IN14_V2_Init(uint8_t Scan_dir);
+void LCD_1IN14_V2_Clear(uint16_t Color);
 
 // [mee] add on
 void LCD_1IN14_V2_Invert(bool invert);
 void LCD_1IN14_V2_Char(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const u_char character);
-void LCD_1IN14_V2_ClearWindow(UWORD Color, UWORD Xstart, UWORD Ystart, UWORD width, UWORD height);
+void LCD_1IN14_V2_ClearWindow(uint16_t Color, uint16_t Xstart, uint16_t Ystart, uint16_t width, uint16_t height);
 
-#endif
+#endif // __LCD_1IN14_V2_H
