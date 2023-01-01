@@ -27,6 +27,7 @@
 # THE SOFTWARE.
 ******************************************************************************/
 #include "DEV_Config.h"
+#include "Debug.h"
 
 #define SPI_PORT spi1
 #define I2C_PORT spi1
@@ -120,15 +121,10 @@ void DEV_Delay_us(UDOUBLE xus)
 }
 
 
-
 void DEV_GPIO_Init(void)
 {
     DEV_GPIO_Mode(LCD_RST_PIN, 1);
     DEV_GPIO_Mode(LCD_DC_PIN, 1);
-    DEV_GPIO_Mode(LCD_CS_PIN, 1);
-    DEV_GPIO_Mode(LCD_BL_PIN, 1);
-    
-    
     DEV_GPIO_Mode(LCD_CS_PIN, 1);
     DEV_GPIO_Mode(LCD_BL_PIN, 1);
 
@@ -168,13 +164,13 @@ UBYTE DEV_Module_Init(void)
     gpio_pull_up(LCD_SDA_PIN);
     gpio_pull_up(LCD_SCL_PIN);
     
-    printf("DEV_Module_Init OK \r\n");
+    Debug("DEV_Module_Init OK \r\n");
     return 0;
 }
 
 void DEV_SET_PWM(uint8_t Value){
     if(Value<0 || Value >100){
-        printf("DEV_SET_PWM Error \r\n");
+        Debug("DEV_SET_PWM Error \r\n");
     }else {
         pwm_set_chan_level(slice_num, PWM_CHAN_B, Value);
     }
