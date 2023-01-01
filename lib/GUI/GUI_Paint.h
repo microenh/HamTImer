@@ -31,8 +31,8 @@
 #define LGREEN         RGB_565(0,255,127)
 #define LBLUE          RGB_565(0,127,255)
 
-void Paint_DrawStringDirect(UWORD Xstart, UWORD Ystart, const char * pString, const sFONT* Font, UWORD Color_Foreground, UWORD Color_Background);
-void Paint_DrawSeconds(UWORD Xstart, UWORD Ystart, uint16_t seconds, const sFONT *Font,
-                    UWORD Color_Foreground, UWORD Color_Background, uint16_t prev_seconds);
+void Paint_DrawStringDirect(uint16_t Xstart, uint16_t Ystart, const char * pString, const sFONT* Font, uint16_t Color_Foreground, uint16_t Color_Background);
+void Paint_DrawSeconds(uint16_t Xstart, uint16_t Ystart, uint16_t seconds, const sFONT *Font,
+                    uint16_t Color_Foreground, uint16_t Color_Background, uint16_t prev_seconds);
 
 #endif

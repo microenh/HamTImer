@@ -1,12 +1,11 @@
 ﻿#include "LCD_1in14_V2.h"
 
-#include "DEV_Config.h"
 #include "GUI_Paint.h"
 #include <stdlib.h> // malloc() free()
 #include <string.h>
+#include <stdint.h>
 #include "pico/stdlib.h"
 
-#include "Infrared.h"
 
 const uint8_t DEBOUNCE = 1;  // 125 Hz ticks
 const uint8_t FLASH_CTR = 1;  // 125 Hz ticks
@@ -29,17 +28,17 @@ const uint8_t ctrl = 3;
 
 
 // TBA: EEPROM
-const u_int16_t CTRA = 10;
-const u_int16_t CTRB = 5;
-const u_int8_t pwm = 5;
+const uint16_t CTRA = 10;
+const uint16_t CTRB = 5;
+const uint8_t pwm = 5;
 const bool flash = true;
 const bool twoTimers = true;
 
 
 // colors
-const u_int16_t BACKGROUND = BLACK;
-const u_int16_t A_FOREGROUND = WHITE;
-const u_int16_t B_FOREGROUND = BYELLOW;
+const uint16_t BACKGROUND = BLACK;
+const uint16_t A_FOREGROUND = WHITE;
+const uint16_t B_FOREGROUND = BYELLOW;
 
 // updated by irq
 volatile uint16_t ctrA = CTRA;
@@ -146,6 +145,12 @@ void do_flash() {
     in_flash_ctr = FLASH_CTR;    
 }
 
+static void gpio_pullup(uint8_t pin)
+{
+    gpio_set_dir(pin, GPIO_IN);
+    gpio_pull_up(pin); 
+}
+
 int main(void)
 {
     static struct repeating_timer timer;
@@ -162,16 +167,14 @@ int main(void)
     LCD_1IN14_V2_Init(HORIZONTAL);
     LCD_1IN14_V2_Clear(BACKGROUND);
 
-   
-    // /*2.Drawing on the image*/
-    SET_Infrared_PIN(keyA);    
-    SET_Infrared_PIN(keyB);
+    gpio_pullup(keyA);    
+    gpio_pullup(keyB);
 		 
-	SET_Infrared_PIN(up);
-    SET_Infrared_PIN(down);
-    SET_Infrared_PIN(left);
-    SET_Infrared_PIN(right);
-    SET_Infrared_PIN(ctrl);
+	gpio_pullup(up);
+    gpio_pullup(down);
+    gpio_pullup(left);
+    gpio_pullup(right);
+    gpio_pullup(ctrl);
 
     init_irq();
         
@@ -266,6 +269,5 @@ int main(void)
             irq_data[KEY_CTRL].triggered = false;
         }
     }
-    DEV_Module_Exit();
     return 0;
 }

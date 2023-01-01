@@ -2,8 +2,14 @@
 # 并将名称保存到 DIR_ePaper_SRCS 变量
 aux_source_directory(. DIR_LCD_SRCS)
 
-include_directories(../Config)
-
 # 生成链接库
 add_library(LCD ${DIR_LCD_SRCS})
-target_link_libraries(LCD PUBLIC Config)
+target_link_libraries(
+    LCD
+    PUBLIC
+    pico_stdlib
+    hardware_spi
+    hardware_i2c
+    hardware_pwm
+    hardware_adc
+)

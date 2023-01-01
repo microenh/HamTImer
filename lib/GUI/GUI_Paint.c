@@ -1,5 +1,4 @@
 #include "GUI_Paint.h"
-#include "DEV_Config.h"
 #include "Debug.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -17,11 +16,11 @@ parameter:
     Color_Foreground : Select the foreground color
     Color_Background : Select the background color
 ******************************************************************************/
-void Paint_DrawStringDirect(UWORD Xstart, UWORD Ystart, const char *pString,
-                         const sFONT *Font, UWORD Color_Foreground, UWORD Color_Background)
+void Paint_DrawStringDirect(uint16_t Xstart, uint16_t Ystart, const char *pString,
+                         const sFONT *Font, uint16_t Color_Foreground, uint16_t Color_Background)
 {
-    UWORD Xpoint = Xstart;
-    UWORD Ypoint = Ystart;
+    uint16_t Xpoint = Xstart;
+    uint16_t Ypoint = Ystart;
 
     if (Xstart > LCD_1IN14_V2.WIDTH || Ystart > LCD_1IN14_V2.HEIGHT)
     {
@@ -57,14 +56,14 @@ void Paint_DrawStringDirect(UWORD Xstart, UWORD Ystart, const char *pString,
 static void do_digit(const sFONT *font, const uint16_t xstart, const uint16_t ystart, const uint16_t background, uint16_t const foreground, const u_char digit) {
     LCD_1IN14_V2_Char(xstart, ystart, font, foreground, background, digit);
     // Paint_DrawChar(xstart, ystart, digit, font, background, foreground);
-    // LCD_1IN14_V2_DisplayWindows(xstart, ystart, xstart + font->Width, ystart + font->Height, (UWORD *) Paint.Image);
-    // LCD_1IN14_V2_DisplayWindows(xstart, ystart, xstart + font->Width, ystart + font->Height, (UWORD *) Paint.Image);
+    // LCD_1IN14_V2_DisplayWindows(xstart, ystart, xstart + font->Width, ystart + font->Height, (uint16_t *) Paint.Image);
+    // LCD_1IN14_V2_DisplayWindows(xstart, ystart, xstart + font->Width, ystart + font->Height, (uint16_t *) Paint.Image);
 }
 
-void Paint_DrawSeconds(UWORD Xstart, UWORD Ystart, uint16_t seconds, const sFONT *Font,
-                    UWORD Color_Foreground, UWORD Color_Background, uint16_t prev_seconds)
+void Paint_DrawSeconds(uint16_t Xstart, uint16_t Ystart, uint16_t seconds, const sFONT *Font,
+                    uint16_t Color_Foreground, uint16_t Color_Background, uint16_t prev_seconds)
 {
-    UWORD dx = Font->Width;
+    uint16_t dx = Font->Width;
     
     uint8_t sec = seconds % 60;
     uint8_t prev_sec = prev_seconds % 60;

@@ -29,9 +29,9 @@
 #ifndef __LCD_1IN14_V2_H
 #define __LCD_1IN14_V2_H
 
-#include "DEV_Config.h"
 #include "../Fonts/fonts.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 #define LCD_1IN14_V2_HEIGHT 240
 #define LCD_1IN14_V2_WIDTH  135
@@ -51,7 +51,25 @@ void LCD_1IN14_V2_Clear(uint16_t Color);
 
 // [mee] add on
 void LCD_1IN14_V2_Invert(bool invert);
-void LCD_1IN14_V2_Char(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const u_char character);
+void LCD_1IN14_V2_Char(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const uint8_t character);
 void LCD_1IN14_V2_ClearWindow(uint16_t Color, uint16_t Xstart, uint16_t Ystart, uint16_t width, uint16_t height);
+
+#define LCD_RST_PIN  12
+#define LCD_DC_PIN   8
+#define LCD_BL_PIN   13
+    
+#define LCD_CS_PIN   9
+#define LCD_CLK_PIN  10
+#define LCD_MOSI_PIN 11
+    
+#define LCD_SCL_PIN  7
+#define LCD_SDA_PIN  6
+
+#define SPI_PORT spi1
+
+/*------------------------------------------------------------------------------------------------------*/
+uint8_t DEV_Module_Init(void);
+void DEV_SET_PWM(uint8_t Value);
+
 
 #endif // __LCD_1IN14_V2_H
