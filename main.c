@@ -1,10 +1,8 @@
-﻿#include "LCD_1in14_V2.h"
-
-#include <stdlib.h> // malloc() free()
-#include <string.h>
+﻿#include <string.h>
 #include <stdint.h>
-#include "pico/stdlib.h"
 
+#include "LCD_1in14_V2.h"
+#include "pico/stdlib.h"
 
 const uint8_t DEBOUNCE = 1;  // 125 Hz ticks
 const uint8_t FLASH_CTR = 1;  // 125 Hz ticks
@@ -13,7 +11,7 @@ const sFONT* fontB = &Liberation36;
 const char* TO_MSG = "TIMEOUT";  // 8 char max w/ 36 pt
 const char* ID_MSG = "ID";  // 6 char max w / 48 pt
 
-const uint yStartTop = 10;
+const uint8_t yStartTop = 10;
 
 
 // GPIO pins for buttons
@@ -61,7 +59,7 @@ enum {
     KEY_COUNT,
 };
 
-int gpio_index(uint gpio) {
+int gpio_index(uint8_t gpio) {
     switch (gpio) {
         case keyA: return KEY_A;
         case keyB: return KEY_B;

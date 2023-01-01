@@ -33,9 +33,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "../Fonts/fonts.h"
-#include "../LCD/LCD_1in14_V2.h"
-
 #define RGB_565(r,g,b) (((((r)) & 0xf8) << 8) | (((( g)) & 0xfc) << 3) | ((( b)) >> 3))
 
 #define BLACK          RGB_565(0,0,0)       // 0x0000

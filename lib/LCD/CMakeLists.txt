@@ -9,7 +9,7 @@ target_link_libraries(
     PUBLIC
     pico_stdlib
     hardware_spi
-    hardware_i2c
+    # hardware_i2c
     hardware_pwm
-    hardware_adc
+    # hardware_adc
 )
