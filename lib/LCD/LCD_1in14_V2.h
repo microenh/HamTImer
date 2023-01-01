@@ -31,6 +31,7 @@
 
 
 #include "DEV_Config.h"
+#include "../Fonts/fonts.h"
 #include <stdint.h>
 
 #include <stdlib.h>     //itoa()
@@ -60,10 +61,11 @@ function:
 ********************************************************************************/
 void LCD_1IN14_V2_Init(UBYTE Scan_dir);
 void LCD_1IN14_V2_Clear(UWORD Color);
-void LCD_1IN14_V2_Display(UWORD *Image);
-void LCD_1IN14_V2_DisplayWindows(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend, UWORD *Image);
-void LCD_1IN14_V2_DisplayPoint(UWORD X, UWORD Y, UWORD Color);
 void Handler_1IN14_V2_LCD(int signo);
 
+// [mee] add on
 void LCD_1IN14_V2_Invert(bool invert);
+void LCD_1IN14_V2_Char(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const u_char character);
+void LCD_1IN14_V2_ClearWindow(UWORD Color, UWORD Xstart, UWORD Ystart, UWORD width, UWORD height);
+
 #endif

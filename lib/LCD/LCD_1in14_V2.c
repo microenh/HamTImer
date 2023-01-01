@@ -28,6 +28,7 @@
 ******************************************************************************/
 #include "LCD_1in14_V2.h"
 #include "DEV_Config.h"
+#include "../Fonts/fonts.h"
 
 #include <stdlib.h>		//itoa()
 #include <stdio.h>
@@ -200,7 +201,7 @@ parameter:
 ********************************************************************************/
 void LCD_1IN14_V2_Init(UBYTE Scan_dir)
 {
-    DEV_SET_PWM(90);
+    // DEV_SET_PWM(90);
     //Hardware reset
     LCD_1IN14_V2_Reset();
 
@@ -260,59 +261,56 @@ void LCD_1IN14_V2_Clear(UWORD Color)
 }
 
 /******************************************************************************
-function :	Sends the image buffer in RAM to displays
-parameter:
-******************************************************************************/
-void LCD_1IN14_V2_Display(UWORD *Image)
-{
-    // UWORD j;
-    LCD_1IN14_V2_SetWindows(0, 0, LCD_1IN14_V2.WIDTH, LCD_1IN14_V2.HEIGHT);
-    DEV_Digital_Write(LCD_DC_PIN, 1);
-    DEV_Digital_Write(LCD_CS_PIN, 0);
-    // for (j = 0; j < LCD_1IN14_V2.HEIGHT; j++) {
-    //     DEV_SPI_Write_nByte((uint8_t *)&Image[j*LCD_1IN14_V2.WIDTH], LCD_1IN14_V2.WIDTH*2);
-    // }
-    DEV_SPI_Write_nByte((uint8_t *) Image, LCD_1IN14_V2.HEIGHT * LCD_1IN14_V2.WIDTH*2);
-    DEV_Digital_Write(LCD_CS_PIN, 1);
-    // LCD_1IN14_V2_SendCommand(0x29);
-}
-
-/******************************************************************************
-function :	Sends the image buffer in RAM to displays
+function :	Clear window
 parameter:
 		Xstart 	:   X direction Start coordinates
 		Ystart  :   Y direction Start coordinates
 		Xend    :   X direction end coordinates
 		Yend    :   Y direction end coordinates
-		Image	:	Written content 
 ******************************************************************************/
-void LCD_1IN14_V2_DisplayWindows(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend, UWORD *Image)
+void LCD_1IN14_V2_ClearWindow(UWORD Color, UWORD Xstart, UWORD Ystart, UWORD width, UWORD height)
 {
-    // display
-    UDOUBLE Addr = 0;
-
-    UWORD j;
-    LCD_1IN14_V2_SetWindows(Xstart, Ystart, Xend , Yend);
+    UBYTE low = Color;
+    UBYTE high = Color >> 8;
+   
+    LCD_1IN14_V2_SetWindows(Xstart, Ystart, Xstart + width, Ystart + height);
     DEV_Digital_Write(LCD_DC_PIN, 1);
     DEV_Digital_Write(LCD_CS_PIN, 0);
-    for (j = Ystart; j < Yend - 1; j++) {
-        Addr = Xstart + j * LCD_1IN14_V2.WIDTH ;
-        DEV_SPI_Write_nByte((uint8_t *)&Image[Addr], (Xend-Xstart)*2);
+    for (int j=0; j<width * height; j++) {
+        DEV_SPI_WriteByte(high);
+        DEV_SPI_WriteByte(low);
     }
     DEV_Digital_Write(LCD_CS_PIN, 1);
 }
 
-/******************************************************************************
-function :	Change the color of a point
-parameter:
-		X 		:   X coordinates
-		Y  		:   Y coordinates
-		Color	:	Color
-******************************************************************************/
-void LCD_1IN14_V2_DisplayPoint(UWORD X, UWORD Y, UWORD Color)
+void LCD_1IN14_V2_Char(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const u_char character)
 {
-    LCD_1IN14_V2_SetWindows(X,Y,X,Y);
-    LCD_1IN14_V2_SendData_16Bit(Color);
+    UBYTE fg_low = foreground;
+    UBYTE fg_high = foreground >> 8;
+    UBYTE bg_low = background;
+    UBYTE bg_high = background >> 8;
+   
+    LCD_1IN14_V2_SetWindows(x, y, x + font->Width, y + font->Height);
+    DEV_Digital_Write(LCD_DC_PIN, 1);
+    DEV_Digital_Write(LCD_CS_PIN, 0);
+    uint32_t offset = (character - ' ') * font->Height * (font->Width / 8 + (font->Width % 8 ? 1 : 0));
+    const unsigned char *ptr = &font->table[offset];
+
+    for (UWORD page = 0; page < font->Height; page++)
+    {
+        for (UWORD column = 0; column < font->Width; column++)
+        {
+            if (*ptr & (0x80 >> (column % 8))) {
+                DEV_SPI_WriteByte(fg_high);
+                DEV_SPI_WriteByte(fg_low);
+            } else {
+                DEV_SPI_WriteByte(bg_high);
+                DEV_SPI_WriteByte(bg_low);
+            }
+            ptr += (column %8 == 7);
+        } // Write a line
+        ptr += (font->Width % 8 != 0);
+    } // Write all    DEV_Digital_Write(LCD_CS_PIN, 1);
 }
 
 void LCD_1IN14_V2_Invert(bool invert) {

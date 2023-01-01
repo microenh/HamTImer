@@ -23,7 +23,6 @@ include_directories(./lib/Infrared)
 # 生成可执行文件
 add_executable(main 
 main.c
-ImageData.c
 )
 
 # enable usb output, disable uart output

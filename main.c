@@ -2,7 +2,6 @@
 
 #include "DEV_Config.h"
 #include "GUI_Paint.h"
-#include "ImageData.h"
 #include "Debug.h"
 #include <stdlib.h> // malloc() free()
 #include <string.h>
@@ -14,7 +13,7 @@ const uint8_t DEBOUNCE = 1;  // 125 Hz ticks
 const uint8_t FLASH_CTR = 1;  // 125 Hz ticks
 const sFONT* fontA = &Liberation48;
 const sFONT* fontB = &Liberation36;
-const char* TO_MSG = "TIME OUT";  // 8 char max w/ 36 pt
+const char* TO_MSG = "TIMEOUT";  // 8 char max w/ 36 pt
 const char* ID_MSG = "ID";  // 6 char max w / 48 pt
 
 const uint yStartTop = 10;
@@ -31,8 +30,8 @@ const uint8_t ctrl = 3;
 
 
 // TBA: EEPROM
-const u_int16_t CTRA = 600;
-const u_int16_t CTRB = 120;
+const u_int16_t CTRA = 20;
+const u_int16_t CTRB = 10;
 const u_int8_t pwm = 5;
 const bool flash = true;
 const bool twoTimers = true;
@@ -156,47 +155,15 @@ int main(void)
     add_repeating_timer_ms(125, repeating_timer_callback, NULL, &timer);
     const uint yStartB = (LCD_1IN14_V2_WIDTH) - fontB->Height - yStartTop;
 
-    sleep_ms(100);
-    printf("LCD_1in14_test Demo\r\n");
     if(DEV_Module_Init()!=0){
         return -1;
     }
-    /* LCD Init */
-    printf("1.14inch LCD demo...\r\n");
-    LCD_1IN14_V2_Init(HORIZONTAL);
-
     DEV_SET_PWM(0);
+    /* LCD Init */
+    LCD_1IN14_V2_Init(HORIZONTAL);
     LCD_1IN14_V2_Clear(BACKGROUND);
 
-    // LCD_1IN14_V2_Clear(BLACK);
-    // LCD_1IN14_V2_Clear(RED);
-    // LCD_1IN14_V2_Clear(BRED);
-    // LCD_1IN14_V2_Clear(GREEN);
-    // LCD_1IN14_V2_Clear(BGREEN);
-    // LCD_1IN14_V2_Clear(BLUE);
-    // LCD_1IN14_V2_Clear(BBLUE);
-    // LCD_1IN14_V2_Clear(CYAN);
-    // LCD_1IN14_V2_Clear(BCYAN);
-    // LCD_1IN14_V2_Clear(MAGENTA);
-    // LCD_1IN14_V2_Clear(BMAGENTA);
-    // LCD_1IN14_V2_Clear(YELLOW);
-    // LCD_1IN14_V2_Clear(BYELLOW);
-    // LCD_1IN14_V2_Clear(GRAY);
-    // LCD_1IN14_V2_Clear(WHITE);
-    
-    // LCD_1IN14_V2_Clear(ORANGE);
-    // LCD_1IN14_V2_Clear(PINK);
-
-    UWORD Imagesize = LCD_1IN14_V2_HEIGHT * LCD_1IN14_V2_WIDTH * 2;
-    UWORD *imageBuffer;
-    if((imageBuffer = (UWORD *)malloc(Imagesize)) == NULL) {
-        printf("Failed to apply for black memory...\r\n");
-        exit(0);
-    }
-    // /*1.Create a new image cache named IMAGE_RGB and fill it with white*/
-    Paint_NewImage((UBYTE *)imageBuffer, LCD_1IN14_V2.WIDTH, LCD_1IN14_V2.HEIGHT, 0, BACKGROUND);
-    Paint_SetScale(65);
-    
+   
     // /*2.Drawing on the image*/
     SET_Infrared_PIN(keyA);    
     SET_Infrared_PIN(keyB);
@@ -225,8 +192,6 @@ int main(void)
 
     DEV_SET_PWM(pwm);
 
-    Paint_Clear(BACKGROUND);
-
     while(1){
         if (do_clear_flash) {
             do_clear_flash = false;
@@ -240,9 +205,8 @@ int main(void)
                 Paint_DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
                 prev_ctrA = ctrA;
             } else {
-                Paint_ClearWindows(0, yStartA, LCD_1IN14_V2_HEIGHT, yStartA + fontA->Height, BACKGROUND);
-                Paint_DrawString(xStartAT, yStartA, ID_MSG, fontA, A_FOREGROUND, BLACK);
-                LCD_1IN14_V2_DisplayWindows(0, yStartA, LCD_1IN14_V2_HEIGHT, yStartA + fontA->Height, imageBuffer);
+                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartA, LCD_1IN14_V2_HEIGHT, fontA->Height);
+                Paint_DrawStringDirect(xStartAT, yStartA, ID_MSG, fontA, A_FOREGROUND, BACKGROUND);
             }
        }
 
@@ -253,9 +217,8 @@ int main(void)
                 Paint_DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
                 prev_ctrB = ctrB;
             } else {
-                Paint_ClearWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, BACKGROUND);
-                Paint_DrawString(xStartBT, yStartB, TO_MSG, fontB, B_FOREGROUND, BACKGROUND);
-                LCD_1IN14_V2_DisplayWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, imageBuffer);
+                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2_HEIGHT, fontB->Height);
+                Paint_DrawStringDirect(xStartBT, yStartB, TO_MSG, fontB, B_FOREGROUND, BACKGROUND);
             }
         }
 
@@ -271,13 +234,11 @@ int main(void)
                 do_flash();
                 ctrA = CTRA;
                 prev_ctrA = 0;
-                Paint_ClearWindows(0, yStartA, LCD_1IN14_V2_HEIGHT, yStartA + fontA->Height, BACKGROUND);
-                LCD_1IN14_V2_DisplayWindows(0, yStartA, LCD_1IN14_V2_HEIGHT, yStartA + fontA->Height, imageBuffer);
+                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartA, LCD_1IN14_V2_HEIGHT, fontA->Height);
                 if (!ctrB) {
                     ctrB = CTRB;
                     prev_ctrB = 0;
-                    Paint_ClearWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, BACKGROUND);
-                    LCD_1IN14_V2_DisplayWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, imageBuffer);
+                    LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2_HEIGHT, fontB->Height);
                 }
             }
         }
@@ -287,8 +248,7 @@ int main(void)
                 do_flash();
                 ctrB = CTRB;
                 prev_ctrB = 0;
-                Paint_ClearWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, BACKGROUND);
-                LCD_1IN14_V2_DisplayWindows(0, yStartB, LCD_1IN14_V2_HEIGHT, yStartB + fontB->Height, imageBuffer);
+                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2_HEIGHT, fontB->Height);
             }
         }
         if (irq_data[KEY_UP].triggered) {
@@ -307,12 +267,6 @@ int main(void)
             irq_data[KEY_CTRL].triggered = false;
         }
     }
-
-    /* Module Exit */
-    free(imageBuffer);
-    imageBuffer = NULL;
-    
-    
     DEV_Module_Exit();
     return 0;
 }
