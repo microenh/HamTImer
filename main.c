@@ -1,6 +1,5 @@
 ﻿#include "LCD_1in14_V2.h"
 
-#include "GUI_Paint.h"
 #include <stdlib.h> // malloc() free()
 #include <string.h>
 #include <stdint.h>

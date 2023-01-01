@@ -6,13 +6,11 @@ pico_sdk_init()
 #添加编译子目录
 add_subdirectory(lib/LCD)
 add_subdirectory(lib/Fonts)
-add_subdirectory(lib/GUI)
 
 
 
 #添加头文件目录
 include_directories(examples)
-include_directories(./lib/GUI)
 include_directories(./lib/LCD)
 
 
@@ -30,7 +28,6 @@ pico_add_extra_outputs(main)
 
 target_link_libraries(main
     LCD
-    GUI
     Fonts
     pico_stdlib
     hardware_spi
