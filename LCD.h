@@ -33,7 +33,7 @@
 #include <stdbool.h>
 #include "hardware/pwm.h"
 
-#include "../Fonts/fonts.h"
+#include "Fonts/fonts.h"
 
 #define LCD_1IN14_V2_HEIGHT 240
 #define LCD_1IN14_V2_WIDTH  135

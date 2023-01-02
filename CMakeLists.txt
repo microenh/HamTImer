@@ -3,32 +3,25 @@ include(pico_sdk_import.cmake)
 project(HamTimer)
 pico_sdk_init()
 
-#添加编译子目录
-add_subdirectory(lib/LCD)
-add_subdirectory(lib/Fonts)
+# Subdirectory
+add_subdirectory(fonts)
 
-
-
-#添加头文件目录
-include_directories(examples)
-include_directories(./lib/LCD)
-
-
-# 生成可执行文件
+# Executable
 add_executable(main 
     main.c
+    LCD.c
 )
 
 # enable usb output, disable uart output
-pico_enable_stdio_usb(main 1)
+pico_enable_stdio_usb(main 0)
 pico_enable_stdio_uart(main 1)
 
 # create map/bin/hex/uf2 file etc.
 pico_add_extra_outputs(main)
 
 target_link_libraries(main
-    LCD
-    Fonts
+    fonts
     pico_stdlib
     hardware_spi
+    hardware_pwm
 )
