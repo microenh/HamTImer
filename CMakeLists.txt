@@ -9,7 +9,9 @@ add_subdirectory(fonts)
 # Executable
 add_executable(main 
     main.c
-    LCD.c
+    lcd.c
+    display.c
+    config.c
 )
 
 # enable usb output, disable uart output

@@ -28,7 +28,7 @@
 ******************************************************************************/
 #include <stdarg.h>
 #include <stdio.h>
-#include "LCD.h"
+#include "lcd.h"
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 
@@ -239,7 +239,7 @@ void DrawChar(const uint16_t x, const uint16_t y, const sFONT *font, const uint1
     int8_t index = (character - '!');
 
     if (index < 0) {
-        ClearWindow(background, x, y, x + font->width, y + font->height);
+        ClearWindow(background, x, y, font->width, font->height);
     } else {
         uint32_t offset = index * font->height * (font->width / 8 + (font->width % 8 ? 1 : 0));
         uint8_t fg_low = foreground;

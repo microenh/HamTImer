@@ -23,6 +23,7 @@
     "pico.h": "c",
     "dev_config.h": "c",
     "*.tcc": "c",
-    "limits": "c"
+    "limits": "c",
+    "stdint.h": "c"
   },
 }

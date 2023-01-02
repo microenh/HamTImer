@@ -1,30 +1,20 @@
 ﻿#include <string.h>
 #include <stdint.h>
 
-#include "LCD.h"
+#include "lcd.h"
+#include "display.h"
+#include "config.h"
 #include "pico/stdlib.h"
 
-const uint8_t DEBOUNCE = 1;   // 125 mSec ticks for btn debounce
-const uint8_t FLASH_CTR = 1;  // 125 mSec ticks for btn detect flash
-const sFONT* fontA = &Liberation48;
-const sFONT* fontB = &Liberation36;
-const char* TO_MSG = "TIMEOUT";  // 8 char max w/ 36 pt
-const char* ID_MSG = "ID";       // 6 char max w/ 48 pt
-
-const uint8_t yStartTop = 10;
 
 // TBA: EEPROM
-const uint16_t CTRA = 600;
-const uint16_t CTRB = 120;
+const uint16_t CTRA = 6;
+const uint16_t CTRB = 3;
 const uint8_t pwm = 5;
 const bool flash = true;
-const bool twoTimers = false;
+const bool twoTimers = true;
 
 
-// colors
-const uint16_t BACKGROUND = BLACK;
-const uint16_t A_FOREGROUND = WHITE;
-const uint16_t B_FOREGROUND = BYELLOW;
 
 // updated by irq
 volatile uint16_t ctrA = CTRA;
@@ -34,7 +24,19 @@ volatile bool do_tickB = false;
 volatile bool do_invert = false;
 volatile bool in_flash_ctr = 0;
 volatile bool do_clear_flash = false;
-volatile uint8_t tick_ctr = 0;
+
+bool inverse = false;
+uint widthA;
+uint xStartA;
+uint xStartAT;
+uint yStartA;
+uint yStartB ;
+uint widthB;
+uint xStartB;
+uint xStartBT;
+uint16_t prev_ctrA;
+uint16_t prev_ctrB;
+uint8_t yStartTop;
 
 enum {
     KEY_NONE = -1,
@@ -93,22 +95,24 @@ void init_key_irq(void) {
     gpio_set_irq_enabled(BTN_CTRL_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
 }
 
-bool repeating_timer_callback(struct repeating_timer *t) {
+bool heartbeat(struct repeating_timer *t) {
+    static uint8_t tick_ctr = 7;
+
+    for (uint8_t i=0; i<KEY_COUNT; i++) {
+        if (irq_data[i].ctr) {
+            if (!--irq_data[i].ctr) {
+                irq_data[i].triggered = true;
+            }
+        }
+    }
+
     if (in_flash_ctr) {
         if (!--in_flash_ctr) {
             do_clear_flash = true;
         }
     }
-    if (tick_ctr) {
-        tick_ctr--;
-        for (uint8_t i=0; i<KEY_COUNT; i++) {
-            if (irq_data[i].ctr) {
-                if (!--irq_data[i].ctr) {
-                    irq_data[i].triggered = true;
-                }
-            }
-        }
-    } else {
+
+    if (!--tick_ctr) {
         tick_ctr = 7;
         if (ctrA) {
             ctrA--;
@@ -128,14 +132,72 @@ void do_flash() {
     in_flash_ctr = FLASH_CTR;    
 }
 
-int main(void)
-{
+void do_btn_a(void) {
+    do_flash();
+    ctrA = CTRA;
+    prev_ctrA = 0;
+    ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontTop->height);
+    DrawSeconds(xStartA, yStartA, ctrA, fontTop, TOP_FOREGROUND, BACKGROUND, prev_ctrA);
+    if (!ctrB) {
+        ctrB = CTRB;
+        prev_ctrB = 0;
+        ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontBottom->height);
+        DrawSeconds(xStartB, yStartB, ctrB, fontBottom, BOTTOM_FOREGROUND, BACKGROUND, prev_ctrB);
+    }
+}
+
+void do_btn_b(void) {
+    do_flash();
+    ctrB = CTRB;
+    prev_ctrB = 0;
+    ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontBottom->height);
+    DrawSeconds(xStartB, yStartB, ctrB, fontBottom, BOTTOM_FOREGROUND, BACKGROUND, prev_ctrB);
+}
+
+void do_btn_up(void) {}
+void do_btn_down(void) {}
+void do_btn_left(void) {}
+void do_btn_right(void) {}
+void do_btn_ctrl(void) {}
+
+const void (*btn_handler[])(void) = {
+    &do_btn_a,
+    &do_btn_b,
+    &do_btn_up,
+    &do_btn_down,
+    &do_btn_left,
+    &do_btn_right,
+    &do_btn_ctrl
+};
+
+
+void tickA_handler(void) {
+    if (ctrA)
+    {
+        DrawSeconds(xStartA, yStartA, ctrA, fontTop, TOP_FOREGROUND, BACKGROUND, prev_ctrA);
+        prev_ctrA = ctrA;
+    } else {
+        ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontTop->height);
+        DrawString(xStartAT, yStartA, ID_MSG, fontTop, TOP_FOREGROUND, BACKGROUND);
+    }
+}
+
+void tickB_handler(void) {
+    if (ctrB) {
+        DrawSeconds(xStartB, yStartB, ctrB, fontBottom, BOTTOM_FOREGROUND, BACKGROUND, prev_ctrB);
+        prev_ctrB = ctrB;
+    } else {
+        ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontBottom->height);
+        DrawString(xStartBT, yStartB, TO_MSG, fontBottom, BOTTOM_FOREGROUND, BACKGROUND);
+    }
+}
+
+void setup() {
     static struct repeating_timer timer;
 
     set_sys_clock_48mhz();
-    add_repeating_timer_ms(125, repeating_timer_callback, NULL, &timer);
-    const uint yStartB = (LCD_1IN14_V2_WIDTH) - fontB->height - yStartTop;
-
+    add_repeating_timer_ms(125, heartbeat, NULL, &timer);
+    
     InitHardware();
 
     BacklightLevel(0);
@@ -146,99 +208,95 @@ int main(void)
 
     init_key_irq();
 
-    bool inverse = false;
- 
-    uint widthA = 4 * fontA->width + fontA->width / 2;
-    uint xStartA = (lcd.width - widthA) / 2;
-    uint xStartAT = (lcd.width - strlen(ID_MSG) * fontA->width) / 2;
-    const uint yStartA = twoTimers ? yStartTop : (lcd.height - fontA->height) / 2;
+    inverse = false;
 
-    uint widthB = 4 * fontB->width + fontB->width / 2;
-    uint xStartB = (lcd.width - widthB) / 2;
-    uint xStartBT = (lcd.width - strlen(TO_MSG) * fontB->width) / 2;
-    
-    uint16_t prev_ctrA;
-    uint16_t prev_ctrB;
+ 
+    widthA = 4 * fontTop->width + fontTop->width / 2;
+    xStartA = (lcd.width - widthA) / 2;
+    xStartAT = (lcd.width - strlen(ID_MSG) * fontTop->width) / 2;
+ 
+    widthB = 4 * fontBottom->width + fontBottom->width / 2;
+    xStartB = (lcd.width - widthB) / 2;
+    xStartBT = (lcd.width - strlen(TO_MSG) * fontBottom->width) / 2;
+    yStartTop = (lcd.height - fontTop->height - fontBottom->height) /3;
+    yStartA = twoTimers ? yStartTop : (lcd.height - fontTop->height) / 2;
+    yStartB = lcd.height - fontBottom->height - yStartTop;
 
     BacklightLevel(pwm);
 
+    displayInit();
+
+    // for (uint16_t t = 120; t; t--) {
+    //    displayTimeTop(t + 480);
+    //    displayTimeBottom(t);
+    // }
+
+    // displayTimeTop(600);
+    // clearTop();
+    // displayStringTop("<N8ME>");
+    // clearTop();
+    // displayTimeTop(600);
+    // clearTop();
+    // displayStringTop("ID");
+    // clearTop();
+    // displayTimeTop(600);
+    // clearTop();
+
+    // displayTimeBottom(600);
+    // displayStringBottom("<<N8ME>>");
+    // displayTimeBottom(600);
+    // displayStringBottom("ID");
+    // displayTimeBottom(600);
+
+    displayTimeTop(600);
+    displayTimeBottom(120);
+    setSingle(true);
+    setSingle(false);
+    setSingle(true);
+    displayStringTop("ID");
+    setSingle(false);
+    displayTimeTop(600);
+    displayStringBottom("TIMER A");
+}
+
+void loop() {
+    if (do_clear_flash) {
+        do_clear_flash = false;
+        Invert(true);
+    }
+    if (do_tickA)
+    {
+        do_tickA = false;
+        tickA_handler();
+    }
+
+    if (do_tickB)
+    {
+        do_tickB = false;
+        tickB_handler();
+    }
+
+    if (do_invert) {
+        do_invert = false;
+        Invert(inverse);
+        inverse = !inverse;
+    }
+
+    for (uint8_t i = 0; i < KEY_COUNT; i++) {
+        if (irq_data[i].triggered) {
+            irq_data[i].triggered = false;
+            if (irq_data[i].last_state == GPIO_IRQ_EDGE_FALL) {
+                btn_handler[i]();
+            }
+        }
+    }
+}
+
+int main(void)
+{
+    setup();
     while(1){
-        if (do_clear_flash) {
-            do_clear_flash = false;
-            Invert(true);
-        }
-        if (do_tickA)
-        {
-            do_tickA = false;
-            if (ctrA)
-            {
-                DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
-                prev_ctrA = ctrA;
-            } else {
-                ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontA->height);
-                DrawString(xStartAT, yStartA, ID_MSG, fontA, A_FOREGROUND, BACKGROUND);
-            }
-       }
-
-        if (do_tickB)
-        {
-            do_tickB = false;
-            if (ctrB) {
-                DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
-                prev_ctrB = ctrB;
-            } else {
-                ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->height);
-                DrawString(xStartBT, yStartB, TO_MSG, fontB, B_FOREGROUND, BACKGROUND);
-            }
-        }
-
-        if (do_invert) {
-            do_invert = false;
-            Invert(inverse);
-            inverse = !inverse;
-        }
-
-        if (irq_data[KEY_A].triggered) {
-            irq_data[KEY_A].triggered = false;
-            if (irq_data[KEY_A].last_state == GPIO_IRQ_EDGE_FALL) {
-                do_flash();
-                ctrA = CTRA;
-                prev_ctrA = 0;
-                ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontA->height);
-                DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
-                if (!ctrB) {
-                    ctrB = CTRB;
-                    prev_ctrB = 0;
-                    ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->height);
-                    DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
-                }
-            }
-        }
-        if (irq_data[KEY_B].triggered) {
-            irq_data[KEY_B].triggered = false;
-            if (irq_data[KEY_B].last_state == GPIO_IRQ_EDGE_FALL && twoTimers) {
-                do_flash();
-                ctrB = CTRB;
-                prev_ctrB = 0;
-                ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->height);
-                DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
-            }
-        }
-        if (irq_data[KEY_UP].triggered) {
-            irq_data[KEY_UP].triggered = false;
-        }
-        if (irq_data[KEY_DOWN].triggered) {
-            irq_data[KEY_DOWN].triggered = false;
-        }
-        if (irq_data[KEY_LEFT].triggered) {
-            irq_data[KEY_LEFT].triggered = false;
-        }
-        if (irq_data[KEY_RIGHT].triggered) {
-            irq_data[KEY_RIGHT].triggered = false;
-        }
-        if (irq_data[KEY_CTRL].triggered) {
-            irq_data[KEY_CTRL].triggered = false;
-        }
+        loop();
     }
     return 0;
 }
