@@ -27,22 +27,21 @@
 #
 ******************************************************************************/
 #include <stdarg.h>
-#include "LCD_1in14_V2.h"
+#include "LCD.h"
 #include <stdio.h>
 
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
-#include "hardware/pwm.h"
 #include "Debug.h"
 
-
-LCD_1IN14_V2_ATTRIBUTES LCD_1IN14_V2;
+LCD_Attributes lcd;
+uint8_t slice_num;  // for Backlight PWM
 
 /******************************************************************************
 function :	Hardware reset
 parameter:
 ******************************************************************************/
-static void LCD_1IN14_V2_Reset(void)
+static void Reset(void)
 {
     gpio_put(LCD_CS_PIN, 1);
     gpio_put(LCD_RST_PIN, 1);
@@ -58,7 +57,7 @@ function :	send command
 parameter:
      Reg : Command register
 ******************************************************************************/
-static void LCD_1IN14_V2_SendCommand(uint8_t command)
+static void SendCommand(uint8_t command)
 {
     gpio_put(LCD_DC_PIN, 0);
     gpio_put(LCD_CS_PIN, 0);
@@ -71,7 +70,7 @@ function :	send data
 parameter:
     Data : Write data
 ******************************************************************************/
-static void LCD_1IN14_V2_SendData_8Bit(uint8_t data)
+static void SendData8Bit(uint8_t data)
 {
     gpio_put(LCD_DC_PIN, 1);
     gpio_put(LCD_CS_PIN, 0);
@@ -79,7 +78,7 @@ static void LCD_1IN14_V2_SendData_8Bit(uint8_t data)
     gpio_put(LCD_CS_PIN, 1);
 }
 
-static void LCD_1IN14_V2_SendCommandData(uint8_t command, uint16_t num, ...) {
+static void SendCommandData(uint8_t command, uint16_t num, ...) {
     gpio_put(LCD_DC_PIN, 0);
     gpio_put(LCD_CS_PIN, 0);
     spi_write_blocking(SPI_PORT, &command, 1);
@@ -99,7 +98,7 @@ function :	send data
 parameter:
     Data : Write data
 ******************************************************************************/
-static void LCD_1IN14_V2_SendData_16Bit(uint16_t data)
+static void SendData16Bit(uint16_t data)
 {
     gpio_put(LCD_DC_PIN, 1);
     gpio_put(LCD_CS_PIN, 0);
@@ -112,31 +111,31 @@ static void LCD_1IN14_V2_SendData_16Bit(uint16_t data)
 function :	Initialize the lcd register
 parameter:
 ******************************************************************************/
-static void LCD_1IN14_V2_InitReg(void)
+static void InitRegisters(void)
 {
-    LCD_1IN14_V2_SendCommandData(0x3A, 1, 0x55);
+    SendCommandData(0x3A, 1, 0x55);
 
     // LCD_1IN14_V2_SendCommandData(0xb2, 5,  // PORTCTRL (porch)
     //    0x0c, 0x0c, 0x00, 0x33, 0x33);      // these are the defaults on init / reset  
 
-    LCD_1IN14_V2_SendCommandData(0xb7, 1, 0x35);        // Gate Control
-    LCD_1IN14_V2_SendCommandData(0xbb, 1, 0x19);        // VCOM Setting
-    LCD_1IN14_V2_SendCommandData(0xc0, 1, 0x2c);        // LCM Control
-    LCD_1IN14_V2_SendCommandData(0xc2, 1, 0x01);        // VDV, VRH Enable
-    LCD_1IN14_V2_SendCommandData(0xc3, 1, 0x12);        // VRH Set
-    LCD_1IN14_V2_SendCommandData(0xc4, 1, 0x20);        // VDV Set
-    LCD_1IN14_V2_SendCommandData(0xc6, 1, 0x0f);        // frame rate control in normal mode
-    LCD_1IN14_V2_SendCommandData(0xd0, 2, 0xa4, 0xa1);  // power control 1
+    SendCommandData(0xb7, 1, 0x35);        // Gate Control
+    SendCommandData(0xbb, 1, 0x19);        // VCOM Setting
+    SendCommandData(0xc0, 1, 0x2c);        // LCM Control
+    SendCommandData(0xc2, 1, 0x01);        // VDV, VRH Enable
+    SendCommandData(0xc3, 1, 0x12);        // VRH Set
+    SendCommandData(0xc4, 1, 0x20);        // VDV Set
+    SendCommandData(0xc6, 1, 0x0f);        // frame rate control in normal mode
+    SendCommandData(0xd0, 2, 0xa4, 0xa1);  // power control 1
 
-    LCD_1IN14_V2_SendCommandData(0xe0, 14, //Positive Voltage Gamma Control
+    SendCommandData(0xe0, 14, //Positive Voltage Gamma Control
         0xd0, 0x04, 0x0d, 0x11, 0x13, 0x2b, 0x3f, 0x54, 0x4c, 0x18, 0x0d, 0x0b, 0x1f, 0x23);
 
-    LCD_1IN14_V2_SendCommandData(0xe1, 14, //Negative Voltage Gamma Control
+    SendCommandData(0xe1, 14, //Negative Voltage Gamma Control
         0xd0, 0x04, 0x0c, 0x11, 0x13, 0x2c, 0x3f, 0x44, 0x51, 0x2f, 0x1f, 0x1f, 0x20, 0x23);
 
-    LCD_1IN14_V2_SendCommand(0x21);  // Display Inversion: Off (0x20), On (0x21)
-    LCD_1IN14_V2_SendCommand(0x11);  // Sleep Out
-    LCD_1IN14_V2_SendCommand(0x29);  // Display On
+    SendCommand(0x21);  // Display Inversion: Off (0x20), On (0x21)
+    SendCommand(0x11);  // Sleep Out
+    SendCommand(0x29);  // Display On
 }
 
 /********************************************************************************
@@ -144,41 +143,41 @@ function:	Set the resolution and scanning method of the screen
 parameter:
 		Scan_dir:   Scan direction
 ********************************************************************************/
-static void LCD_1IN14_V2_SetAttributes(uint8_t Scan_dir)
+static void SetAttributes(uint8_t Scan_dir)
 {
     //Get the screen scan direction
-    LCD_1IN14_V2.SCAN_DIR = Scan_dir;
+    lcd.SCAN_DIR = Scan_dir;
     uint8_t MemoryAccessReg = 0x00;
 
     //Get GRAM and LCD width and height
     if(Scan_dir == HORIZONTAL) {
-        LCD_1IN14_V2.HEIGHT	= LCD_1IN14_V2_WIDTH;
-        LCD_1IN14_V2.WIDTH   = LCD_1IN14_V2_HEIGHT;
+        lcd.HEIGHT	= LCD_1IN14_V2_WIDTH;
+        lcd.WIDTH   = LCD_1IN14_V2_HEIGHT;
         MemoryAccessReg = 0X70;
     } else {
-        LCD_1IN14_V2.HEIGHT	= LCD_1IN14_V2_HEIGHT;       
-        LCD_1IN14_V2.WIDTH   = LCD_1IN14_V2_WIDTH;
+        lcd.HEIGHT	= LCD_1IN14_V2_HEIGHT;       
+        lcd.WIDTH   = LCD_1IN14_V2_WIDTH;
         MemoryAccessReg = 0X00;
     }
 
     // Set the read / write scan direction of the frame memory
-    LCD_1IN14_V2_SendCommandData(0x36, 1, MemoryAccessReg); //MX, MY, RGB mode (0x08 set RGB)
+    SendCommandData(0x36, 1, MemoryAccessReg); //MX, MY, RGB mode (0x08 set RGB)
 }
 
 /********************************************************************************
 function :	Initialize the lcd
 parameter:
 ********************************************************************************/
-void LCD_1IN14_V2_Init(uint8_t Scan_dir)
+void InitLCD(uint8_t Scan_dir)
 {
     //Hardware reset
-    LCD_1IN14_V2_Reset();
+    Reset();
 
     //Set the resolution and scanning method of the screen
-    LCD_1IN14_V2_SetAttributes(Scan_dir);
+    SetAttributes(Scan_dir);
     
     //Set the initialization register
-    LCD_1IN14_V2_InitReg();
+    InitRegisters();
 }
 
 /********************************************************************************
@@ -189,11 +188,11 @@ parameter:
 		Xend    :   X direction end coordinates
 		Yend    :   Y direction end coordinates
 ********************************************************************************/
-void LCD_1IN14_V2_SetWindows(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend)
+void SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend)
 {
     uint8_t x,y;
 
-    if(LCD_1IN14_V2.SCAN_DIR == HORIZONTAL){
+    if(lcd.SCAN_DIR == HORIZONTAL){
         x=40;
         y=53;
     } else {
@@ -202,16 +201,16 @@ void LCD_1IN14_V2_SetWindows(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, ui
     }
     
     //set the X coordinates
-    LCD_1IN14_V2_SendCommand(0x2A); // CASET
+    SendCommand(0x2A); // CASET
     
-    LCD_1IN14_V2_SendData_16Bit(Xstart + x);
-    LCD_1IN14_V2_SendData_16Bit(Xend - 1 + x);
+    SendData16Bit(Xstart + x);
+    SendData16Bit(Xend - 1 + x);
     //set the Y coordinates
-    LCD_1IN14_V2_SendCommand(0x2B);         // RASET
-    LCD_1IN14_V2_SendData_16Bit(Ystart + y);
-    LCD_1IN14_V2_SendData_16Bit(Yend - 1 + y);
+    SendCommand(0x2B);         // RASET
+    SendData16Bit(Ystart + y);
+    SendData16Bit(Yend - 1 + y);
 
-    LCD_1IN14_V2_SendCommand(0X2C);  // RAMWR
+    SendCommand(0X2C);  // RAMWR
     // Debug("%d %d\r\n",x,y);
 }
 
@@ -223,12 +222,12 @@ parameter:
 		Xend    :   X direction end coordinates
 		Yend    :   Y direction end coordinates
 ******************************************************************************/
-void LCD_1IN14_V2_ClearWindow(uint16_t Color, uint16_t Xstart, uint16_t Ystart, uint16_t width, uint16_t height)
+void ClearWindow(uint16_t Color, uint16_t Xstart, uint16_t Ystart, uint16_t width, uint16_t height)
 {
     uint8_t low = Color;
     uint8_t high = Color >> 8;
    
-    LCD_1IN14_V2_SetWindows(Xstart, Ystart, Xstart + width, Ystart + height);
+    SetWindow(Xstart, Ystart, Xstart + width, Ystart + height);
     gpio_put(LCD_DC_PIN, 1);
     gpio_put(LCD_CS_PIN, 0);
     for (int j=0; j<width * height; j++) {
@@ -238,14 +237,14 @@ void LCD_1IN14_V2_ClearWindow(uint16_t Color, uint16_t Xstart, uint16_t Ystart, 
     gpio_put(LCD_CS_PIN, 1);
 }
 
-void LCD_1IN14_V2_Char(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const u_char character)
+void DrawChar(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const u_char character)
 {
     uint8_t fg_low = foreground;
     uint8_t fg_high = foreground >> 8;
     uint8_t bg_low = background;
     uint8_t bg_high = background >> 8;
    
-    LCD_1IN14_V2_SetWindows(x, y, x + font->Width, y + font->Height);
+    SetWindow(x, y, x + font->Width, y + font->Height);
     gpio_put(LCD_DC_PIN, 1);
     gpio_put(LCD_CS_PIN, 0);
     uint32_t offset = (character - ' ') * font->Height * (font->Width / 8 + (font->Width % 8 ? 1 : 0));
@@ -269,18 +268,24 @@ void LCD_1IN14_V2_Char(const uint16_t x, const uint16_t y, const sFONT *font, co
     gpio_put(LCD_CS_PIN, 1);
 }
 
-void LCD_1IN14_V2_Invert(bool invert) {
-    LCD_1IN14_V2_SendCommand(invert ? 0x21 : 0x20);
+void Invert(bool invert) {
+    SendCommand(invert ? 0x21 : 0x20);
 }
 
-static uint slice_num;
 
 /******************************************************************************
 function:	Module Initialize, the library and initialize the pins, SPI protocol
 parameter:
 Info:
 ******************************************************************************/
-uint8_t DEV_Module_Init(void)
+
+static void gpio_pullup(uint8_t pin)
+{
+    gpio_set_dir(pin, GPIO_IN);
+    gpio_pull_up(pin); 
+}
+
+void InitHardware(void)
 {
     stdio_init_all();
 
@@ -293,6 +298,16 @@ uint8_t DEV_Module_Init(void)
     gpio_init(LCD_RST_PIN);
     gpio_init(LCD_DC_PIN);
     gpio_init(LCD_CS_PIN);
+
+    gpio_pullup(BTN_A_PIN);    
+    gpio_pullup(BTN_B_PIN);	 
+	gpio_pullup(BTN_UP_PIN);
+    gpio_pullup(BTN_DOWN_PIN);
+    gpio_pullup(BTN_LEFT_PIN);
+    gpio_pullup(BTN_RIGHT_PIN);
+    gpio_pullup(BTN_CTRL_PIN);
+
+
 
     gpio_set_dir(LCD_RST_PIN, GPIO_OUT);
     gpio_set_dir(LCD_DC_PIN, GPIO_OUT);
@@ -307,16 +322,8 @@ uint8_t DEV_Module_Init(void)
     pwm_set_enabled(slice_num, true);
     
     Debug("DEV_Module_Init OK \r\n");
-    return 0;
 }
 
-void DEV_SET_PWM(uint8_t Value){
-    if (Value < 0 || Value > 100) {
-        Debug("DEV_SET_PWM Error \r\n");
-    } else {
-        pwm_set_chan_level(slice_num, PWM_CHAN_B, Value);
-    }    
-}
 
 /******************************************************************************
 function:	Display the string directly to the controller RAM
@@ -328,13 +335,13 @@ parameter:
     Color_Foreground : Select the foreground color
     Color_Background : Select the background color
 ******************************************************************************/
-void Paint_DrawStringDirect(uint16_t Xstart, uint16_t Ystart, const char *pString,
+void DrawString(uint16_t Xstart, uint16_t Ystart, const char *pString,
                          const sFONT *Font, uint16_t Color_Foreground, uint16_t Color_Background)
 {
     uint16_t Xpoint = Xstart;
     uint16_t Ypoint = Ystart;
 
-    if (Xstart > LCD_1IN14_V2.WIDTH || Ystart > LCD_1IN14_V2.HEIGHT)
+    if (Xstart > lcd.WIDTH || Ystart > lcd.HEIGHT)
     {
         Debug("Paint_DrawString Input exceeds the normal display range\r\n");
         return;
@@ -343,7 +350,7 @@ void Paint_DrawStringDirect(uint16_t Xstart, uint16_t Ystart, const char *pStrin
     while (*pString != '\0')
     {
         // if X direction filled , reposition to(Xstart,Ypoint),Ypoint is Y direction plus the Height of the character
-        if ((Xpoint + Font->Width) > LCD_1IN14_V2.WIDTH)
+        if ((Xpoint + Font->Width) > lcd.WIDTH)
         {
             Xpoint = Xstart;
             Ypoint += Font->Height;
@@ -355,7 +362,7 @@ void Paint_DrawStringDirect(uint16_t Xstart, uint16_t Ystart, const char *pStrin
             Xpoint = Xstart;
             Ypoint = Ystart;
         }
-        LCD_1IN14_V2_Char(Xpoint, Ypoint, Font, Color_Foreground, Color_Background, *pString);
+        DrawChar(Xpoint, Ypoint, Font, Color_Foreground, Color_Background, *pString);
  
         // The next character of the address
         pString++;
@@ -365,15 +372,8 @@ void Paint_DrawStringDirect(uint16_t Xstart, uint16_t Ystart, const char *pStrin
     }
 }
 
-static void do_digit(const sFONT *font, const uint16_t xstart, const uint16_t ystart, const uint16_t background, uint16_t const foreground, const u_char digit) {
-    LCD_1IN14_V2_Char(xstart, ystart, font, foreground, background, digit);
-    // Paint_DrawChar(xstart, ystart, digit, font, background, foreground);
-    // LCD_1IN14_V2_DisplayWindows(xstart, ystart, xstart + font->Width, ystart + font->Height, (uint16_t *) Paint.Image);
-    // LCD_1IN14_V2_DisplayWindows(xstart, ystart, xstart + font->Width, ystart + font->Height, (uint16_t *) Paint.Image);
-}
-
-void Paint_DrawSeconds(uint16_t Xstart, uint16_t Ystart, uint16_t seconds, const sFONT *Font,
-                    uint16_t Color_Foreground, uint16_t Color_Background, uint16_t prev_seconds)
+void DrawSeconds(uint16_t Xstart, uint16_t Ystart, uint16_t seconds, const sFONT *Font,
+                 uint16_t Color_Foreground, uint16_t Color_Background, uint16_t prev_seconds)
 {
     uint16_t dx = Font->Width;
     
@@ -394,18 +394,18 @@ void Paint_DrawSeconds(uint16_t Xstart, uint16_t Ystart, uint16_t seconds, const
 
     // Update display where needed by digit
     if (!prev_seconds) {
-        do_digit(Font, Xstart + 7 * dx / 4, Ystart, Color_Background, Color_Foreground, ':');
+        DrawChar(Xstart + 7 * dx / 4, Ystart, Font, Color_Foreground, Color_Background, ':');
     }
     if (!prev_seconds || prev_min10 != min10) {
-        do_digit(Font, Xstart, Ystart, Color_Background, Color_Foreground, min10 ? min10 + '0' : ' ');
+        DrawChar(Xstart, Ystart, Font, Color_Foreground, Color_Background, min10 ? min10 + '0' : ' ');
     }
     if (!prev_seconds || prev_min01 != min01) {
-        do_digit(Font, Xstart + dx, Ystart, Color_Background, Color_Foreground, min01 + '0');
+        DrawChar(Xstart + dx, Ystart, Font, Color_Foreground, Color_Background, min01 + '0');
     }
     if (!prev_seconds || prev_sec10 != sec10) {
-        do_digit(Font, Xstart + 5 * dx / 2, Ystart, Color_Background, Color_Foreground, sec10 + '0');
+        DrawChar(Xstart + 5 * dx / 2, Ystart, Font, Color_Foreground, Color_Background, sec10 + '0');
     }
     if (!prev_seconds || prev_sec01 != sec01) {
-        do_digit(Font, Xstart + 7 * dx / 2, Ystart, Color_Background, Color_Foreground, sec01 + '0');
+        DrawChar(Xstart + 7 * dx / 2, Ystart, Font, Color_Foreground, Color_Background, sec01 + '0');
     }
 }

@@ -1,7 +1,7 @@
 ﻿#include <string.h>
 #include <stdint.h>
 
-#include "LCD_1in14_V2.h"
+#include "LCD.h"
 #include "pico/stdlib.h"
 
 const uint8_t DEBOUNCE = 1;  // 125 Hz ticks
@@ -14,14 +14,6 @@ const char* ID_MSG = "ID";  // 6 char max w / 48 pt
 const uint8_t yStartTop = 10;
 
 
-// GPIO pins for buttons
-const uint8_t keyA = 15; 
-const uint8_t keyB = 17; 
-const uint8_t up = 2;
-const uint8_t down = 18;
-const uint8_t left = 16;
-const uint8_t right = 20;
-const uint8_t ctrl = 3;
 
 
 // TBA: EEPROM
@@ -61,13 +53,13 @@ enum {
 
 int gpio_index(uint8_t gpio) {
     switch (gpio) {
-        case keyA: return KEY_A;
-        case keyB: return KEY_B;
-        case up: return KEY_UP;
-        case down: return KEY_DOWN;
-        case left: return KEY_LEFT;
-        case right: return KEY_RIGHT;
-        case ctrl: return KEY_CTRL;
+        case BTN_A_PIN: return KEY_A;
+        case BTN_B_PIN: return KEY_B;
+        case BTN_UP_PIN: return KEY_UP;
+        case BTN_DOWN_PIN: return KEY_DOWN;
+        case BTN_LEFT_PIN: return KEY_LEFT;
+        case BTN_RIGHT_PIN: return KEY_RIGHT;
+        case BTN_CTRL_PIN: return KEY_CTRL;
         default: return KEY_NONE;
     }
 }
@@ -97,13 +89,13 @@ void init_irq(void) {
         irq_data[i].ctr = 0;
         irq_data[i].triggered = false;
     }
-    gpio_set_irq_enabled_with_callback(keyA, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_irq);
-    gpio_set_irq_enabled(keyB, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-    gpio_set_irq_enabled(up, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-    gpio_set_irq_enabled(down, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-    gpio_set_irq_enabled(left, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-    gpio_set_irq_enabled(right, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-    gpio_set_irq_enabled(ctrl, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled_with_callback(BTN_A_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_irq);
+    gpio_set_irq_enabled(BTN_B_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BTN_UP_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BTN_DOWN_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BTN_LEFT_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BTN_RIGHT_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BTN_CTRL_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
 }
 
 
@@ -138,14 +130,8 @@ bool repeating_timer_callback(struct repeating_timer *t) {
 }
 
 void do_flash() {
-    LCD_1IN14_V2_Invert(false);
+    Invert(false);
     in_flash_ctr = FLASH_CTR;    
-}
-
-static void gpio_pullup(uint8_t pin)
-{
-    gpio_set_dir(pin, GPIO_IN);
-    gpio_pull_up(pin); 
 }
 
 int main(void)
@@ -156,56 +142,46 @@ int main(void)
     add_repeating_timer_ms(125, repeating_timer_callback, NULL, &timer);
     const uint yStartB = (LCD_1IN14_V2_WIDTH) - fontB->Height - yStartTop;
 
-    if(DEV_Module_Init()!=0){
-        return -1;
-    }
-    DEV_SET_PWM(0);
-    /* LCD Init */
-    LCD_1IN14_V2_Init(HORIZONTAL);
-    LCD_1IN14_V2_Clear(BACKGROUND);
+    InitHardware();
 
-    gpio_pullup(keyA);    
-    gpio_pullup(keyB);
-		 
-	gpio_pullup(up);
-    gpio_pullup(down);
-    gpio_pullup(left);
-    gpio_pullup(right);
-    gpio_pullup(ctrl);
+    BacklightLevel(0);
+    /* LCD Init */
+    InitLCD(HORIZONTAL);
+    Clear(BACKGROUND);
 
     init_irq();
-        
+
     bool inverse = false;
  
     uint widthA = 4 * fontA->Width + fontA->Width / 2;
-    uint xStartA = (LCD_1IN14_V2.WIDTH - widthA) / 2;
-    uint xStartAT = (LCD_1IN14_V2.WIDTH - strlen(ID_MSG) * fontA->Width) / 2;
-    const uint yStartA = twoTimers ? yStartTop : (LCD_1IN14_V2.HEIGHT - fontA->Height) / 2;
+    uint xStartA = (lcd.WIDTH - widthA) / 2;
+    uint xStartAT = (lcd.WIDTH - strlen(ID_MSG) * fontA->Width) / 2;
+    const uint yStartA = twoTimers ? yStartTop : (lcd.HEIGHT - fontA->Height) / 2;
 
     uint widthB = 4 * fontB->Width + fontB->Width / 2;
-    uint xStartB = (LCD_1IN14_V2.WIDTH - widthB) / 2;
-    uint xStartBT = (LCD_1IN14_V2.WIDTH - strlen(TO_MSG) * fontB->Width) / 2;
+    uint xStartB = (lcd.WIDTH - widthB) / 2;
+    uint xStartBT = (lcd.WIDTH - strlen(TO_MSG) * fontB->Width) / 2;
     
     uint16_t prev_ctrA;
     uint16_t prev_ctrB;
 
-    DEV_SET_PWM(pwm);
+    BacklightLevel(pwm);
 
     while(1){
         if (do_clear_flash) {
             do_clear_flash = false;
-            LCD_1IN14_V2_Invert(true);
+            Invert(true);
         }
         if (do_tickA)
         {
             do_tickA = false;
             if (ctrA)
             {
-                Paint_DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
+                DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
                 prev_ctrA = ctrA;
             } else {
-                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartA, LCD_1IN14_V2.WIDTH, fontA->Height);
-                Paint_DrawStringDirect(xStartAT, yStartA, ID_MSG, fontA, A_FOREGROUND, BACKGROUND);
+                ClearWindow(BACKGROUND, 0, yStartA, lcd.WIDTH, fontA->Height);
+                DrawString(xStartAT, yStartA, ID_MSG, fontA, A_FOREGROUND, BACKGROUND);
             }
        }
 
@@ -213,17 +189,17 @@ int main(void)
         {
             do_tickB = false;
             if (ctrB) {
-                Paint_DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
+                DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
                 prev_ctrB = ctrB;
             } else {
-                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2.WIDTH, fontB->Height);
-                Paint_DrawStringDirect(xStartBT, yStartB, TO_MSG, fontB, B_FOREGROUND, BACKGROUND);
+                ClearWindow(BACKGROUND, 0, yStartB, lcd.WIDTH, fontB->Height);
+                DrawString(xStartBT, yStartB, TO_MSG, fontB, B_FOREGROUND, BACKGROUND);
             }
         }
 
         if (do_invert) {
             do_invert = false;
-            LCD_1IN14_V2_Invert(inverse);
+            Invert(inverse);
             inverse = !inverse;
         }
 
@@ -233,13 +209,13 @@ int main(void)
                 do_flash();
                 ctrA = CTRA;
                 prev_ctrA = 0;
-                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartA, LCD_1IN14_V2.WIDTH, fontA->Height);
-                Paint_DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
+                ClearWindow(BACKGROUND, 0, yStartA, lcd.WIDTH, fontA->Height);
+                DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
                 if (!ctrB) {
                     ctrB = CTRB;
                     prev_ctrB = 0;
-                    LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2.WIDTH, fontB->Height);
-                    Paint_DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
+                    ClearWindow(BACKGROUND, 0, yStartB, lcd.WIDTH, fontB->Height);
+                    DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
                 }
             }
         }
@@ -249,8 +225,8 @@ int main(void)
                 do_flash();
                 ctrB = CTRB;
                 prev_ctrB = 0;
-                LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2.WIDTH, fontB->Height);
-                Paint_DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
+                ClearWindow(BACKGROUND, 0, yStartB, lcd.WIDTH, fontB->Height);
+                DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
             }
         }
         if (irq_data[KEY_UP].triggered) {
