@@ -49,9 +49,9 @@
 //ASCII
 typedef struct _tFont
 {    
-  const uint8_t *table;
-  uint16_t Width;
-  uint16_t Height;
+  const unsigned char *table;
+  uint16_t width;
+  uint16_t height;
   
 } sFONT;
 
@@ -61,6 +61,13 @@ extern sFONT Liberation28;
 extern sFONT Liberation36;
 extern sFONT Liberation48;
 extern sFONT Liberation72;
+
+extern const unsigned char liberation_24pt[];
+extern const unsigned char liberation_26pt[];
+extern const unsigned char liberation_28pt[];
+extern const unsigned char liberation_36pt[];
+extern const unsigned char liberation_48pt[];
+extern const unsigned char liberation_72pt[];
 
 #endif /* __FONTS_H */
  

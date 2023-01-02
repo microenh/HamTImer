@@ -134,7 +134,7 @@ int main(void)
 
     set_sys_clock_48mhz();
     add_repeating_timer_ms(125, repeating_timer_callback, NULL, &timer);
-    const uint yStartB = (LCD_1IN14_V2_WIDTH) - fontB->Height - yStartTop;
+    const uint yStartB = (LCD_1IN14_V2_WIDTH) - fontB->height - yStartTop;
 
     InitHardware();
 
@@ -148,14 +148,14 @@ int main(void)
 
     bool inverse = false;
  
-    uint widthA = 4 * fontA->Width + fontA->Width / 2;
+    uint widthA = 4 * fontA->width + fontA->width / 2;
     uint xStartA = (lcd.width - widthA) / 2;
-    uint xStartAT = (lcd.width - strlen(ID_MSG) * fontA->Width) / 2;
-    const uint yStartA = twoTimers ? yStartTop : (lcd.height - fontA->Height) / 2;
+    uint xStartAT = (lcd.width - strlen(ID_MSG) * fontA->width) / 2;
+    const uint yStartA = twoTimers ? yStartTop : (lcd.height - fontA->height) / 2;
 
-    uint widthB = 4 * fontB->Width + fontB->Width / 2;
+    uint widthB = 4 * fontB->width + fontB->width / 2;
     uint xStartB = (lcd.width - widthB) / 2;
-    uint xStartBT = (lcd.width - strlen(TO_MSG) * fontB->Width) / 2;
+    uint xStartBT = (lcd.width - strlen(TO_MSG) * fontB->width) / 2;
     
     uint16_t prev_ctrA;
     uint16_t prev_ctrB;
@@ -175,7 +175,7 @@ int main(void)
                 DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
                 prev_ctrA = ctrA;
             } else {
-                ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontA->Height);
+                ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontA->height);
                 DrawString(xStartAT, yStartA, ID_MSG, fontA, A_FOREGROUND, BACKGROUND);
             }
        }
@@ -187,7 +187,7 @@ int main(void)
                 DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
                 prev_ctrB = ctrB;
             } else {
-                ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->Height);
+                ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->height);
                 DrawString(xStartBT, yStartB, TO_MSG, fontB, B_FOREGROUND, BACKGROUND);
             }
         }
@@ -204,12 +204,12 @@ int main(void)
                 do_flash();
                 ctrA = CTRA;
                 prev_ctrA = 0;
-                ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontA->Height);
+                ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontA->height);
                 DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
                 if (!ctrB) {
                     ctrB = CTRB;
                     prev_ctrB = 0;
-                    ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->Height);
+                    ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->height);
                     DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
                 }
             }
@@ -220,7 +220,7 @@ int main(void)
                 do_flash();
                 ctrB = CTRB;
                 prev_ctrB = 0;
-                ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->Height);
+                ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->height);
                 DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
             }
         }

@@ -20,8 +20,8 @@ pico_enable_stdio_uart(main 1)
 pico_add_extra_outputs(main)
 
 target_link_libraries(main
-    fonts
     pico_stdlib
     hardware_spi
     hardware_pwm
+    fonts
 )
