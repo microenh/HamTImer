@@ -236,32 +236,37 @@ void ClearWindow(uint16_t Color, uint16_t Xstart, uint16_t Ystart, uint16_t widt
 
 void DrawChar(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const u_char character)
 {
-    uint8_t fg_low = foreground;
-    uint8_t fg_high = foreground >> 8;
-    uint8_t bg_low = background;
-    uint8_t bg_high = background >> 8;
-   
-    SetWindow(x, y, x + font->Width, y + font->Height);
-    gpio_put(LCD_DC_PIN, 1);
-    gpio_put(LCD_CS_PIN, 0);
-    uint32_t offset = (character - ' ') * font->Height * (font->Width / 8 + (font->Width % 8 ? 1 : 0));
-    const unsigned char *ptr = &font->table[offset];
+    int8_t index = (character - '!');
 
-    for (uint16_t page = 0; page < font->Height; page++)
-    {
-        for (uint16_t column = 0; column < font->Width; column++)
+    if (index < 0) {
+        ClearWindow(background, x, y, x + font->width, y + font->height);
+    } else {
+        uint32_t offset = (character - ' ' - 1) * font->height * (font->width / 8 + (font->width % 8 ? 1 : 0));
+        uint8_t fg_low = foreground;
+        uint8_t fg_high = foreground >> 8;
+        uint8_t bg_low = background;
+        uint8_t bg_high = background >> 8;
+        SetWindow(x, y, x + font->width, y + font->height);
+        gpio_put(LCD_DC_PIN, 1);
+        gpio_put(LCD_CS_PIN, 0);
+        const unsigned char *ptr = &font->table[offset];
+
+        for (uint16_t page = 0; page < font->height; page++)
         {
-            if (*ptr & (0x80 >> (column % 8))) {
-                spi_write_blocking(SPI_PORT, &fg_high, 1);
-                spi_write_blocking(SPI_PORT, &fg_low, 1);
-            } else {
-                spi_write_blocking(SPI_PORT, &bg_high, 1);
-                spi_write_blocking(SPI_PORT, &bg_low, 1);
-            }
-            ptr += (column %8 == 7);
-        } // Write a line
-        ptr += (font->Width % 8 != 0);
-    } // Write all
+            for (uint16_t column = 0; column < font->width; column++)
+            {
+                if (*ptr & (0x80 >> (column % 8))) {
+                    spi_write_blocking(SPI_PORT, &fg_high, 1);
+                    spi_write_blocking(SPI_PORT, &fg_low, 1);
+                } else {
+                    spi_write_blocking(SPI_PORT, &bg_high, 1);
+                    spi_write_blocking(SPI_PORT, &bg_low, 1);
+                }
+                ptr += (column %8 == 7);
+            } // Write a line
+            ptr += (font->width % 8 != 0);
+        } // Write all
+    }
     gpio_put(LCD_CS_PIN, 1);
 }
 
@@ -347,14 +352,14 @@ void DrawString(uint16_t x, uint16_t y, const char *pString,
     while (*pString != '\0')
     {
         // if X direction filled , reposition to(Xstart,Ypoint),Ypoint is Y direction plus the Height of the character
-        if ((Xpoint + font->Width) > lcd.width)
+        if ((Xpoint + font->width) > lcd.width)
         {
             Xpoint = x;
-            Ypoint += font->Height;
+            Ypoint += font->height;
         }
 
         // If the Y direction is full, reposition to(Xstart, Ystart)
-        if ((Ypoint + font->Height) > LCD_1IN14_V2_WIDTH)
+        if ((Ypoint + font->height) > LCD_1IN14_V2_WIDTH)
         {
             Xpoint = x;
             Ypoint = y;
@@ -365,14 +370,14 @@ void DrawString(uint16_t x, uint16_t y, const char *pString,
         pString++;
 
         // The next word of the abscissa increases the font of the broadband
-        Xpoint += font->Width;
+        Xpoint += font->width;
     }
 }
 
 void DrawSeconds(uint16_t x, uint16_t y, uint16_t seconds, const sFONT *font,
                  uint16_t foreground, uint16_t background, uint16_t prev_seconds)
 {
-    uint16_t dx = font->Width;
+    uint16_t dx = font->width;
     
     uint8_t sec = seconds % 60;
     uint8_t prev_sec = prev_seconds % 60;
