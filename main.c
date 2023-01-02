@@ -8,11 +8,11 @@
 
 
 // TBA: EEPROM
-const uint16_t CTRA = 6;
-const uint16_t CTRB = 3;
+const uint16_t CTRA = 600;
+const uint16_t CTRB = 120;
 const uint8_t pwm = 5;
 const bool flash = true;
-const bool twoTimers = true;
+const bool twoTimers = false;
 
 
 
@@ -25,18 +25,6 @@ volatile bool do_invert = false;
 volatile bool in_flash_ctr = 0;
 volatile bool do_clear_flash = false;
 
-bool inverse = false;
-uint widthA;
-uint xStartA;
-uint xStartAT;
-uint yStartA;
-uint yStartB ;
-uint widthB;
-uint xStartB;
-uint xStartBT;
-uint16_t prev_ctrA;
-uint16_t prev_ctrB;
-uint8_t yStartTop;
 
 enum {
     KEY_NONE = -1,
@@ -135,23 +123,23 @@ void do_flash() {
 void do_btn_a(void) {
     do_flash();
     ctrA = CTRA;
-    prev_ctrA = 0;
-    ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontTop->height);
-    DrawSeconds(xStartA, yStartA, ctrA, fontTop, TOP_FOREGROUND, BACKGROUND, prev_ctrA);
+    if (twoTimers) {
+        displayStringTop("");
+        setSingle(false);
+    }
+    displayTimeTop(ctrA);
     if (!ctrB) {
         ctrB = CTRB;
-        prev_ctrB = 0;
-        ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontBottom->height);
-        DrawSeconds(xStartB, yStartB, ctrB, fontBottom, BOTTOM_FOREGROUND, BACKGROUND, prev_ctrB);
+        displayTimeBottom(ctrB);
     }
 }
 
 void do_btn_b(void) {
-    do_flash();
-    ctrB = CTRB;
-    prev_ctrB = 0;
-    ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontBottom->height);
-    DrawSeconds(xStartB, yStartB, ctrB, fontBottom, BOTTOM_FOREGROUND, BACKGROUND, prev_ctrB);
+    if (twoTimers) {
+        do_flash();
+        ctrB = CTRB;
+        displayTimeBottom(ctrB);
+    }
 }
 
 void do_btn_up(void) {}
@@ -172,23 +160,22 @@ const void (*btn_handler[])(void) = {
 
 
 void tickA_handler(void) {
-    if (ctrA)
-    {
-        DrawSeconds(xStartA, yStartA, ctrA, fontTop, TOP_FOREGROUND, BACKGROUND, prev_ctrA);
-        prev_ctrA = ctrA;
+    if (ctrA) {
+        displayTimeTop(ctrA);
     } else {
-        ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontTop->height);
-        DrawString(xStartAT, yStartA, ID_MSG, fontTop, TOP_FOREGROUND, BACKGROUND);
+        if (twoTimers) {
+            displayStringTop("");
+            setSingle(true);
+        }
+        displayStringTop(ID_MSG);
     }
 }
 
 void tickB_handler(void) {
     if (ctrB) {
-        DrawSeconds(xStartB, yStartB, ctrB, fontBottom, BOTTOM_FOREGROUND, BACKGROUND, prev_ctrB);
-        prev_ctrB = ctrB;
+        displayTimeBottom(ctrB);
     } else {
-        ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontBottom->height);
-        DrawString(xStartBT, yStartB, TO_MSG, fontBottom, BOTTOM_FOREGROUND, BACKGROUND);
+        displayStringBottom(TO_MSG);
     }
 }
 
@@ -208,58 +195,16 @@ void setup() {
 
     init_key_irq();
 
-    inverse = false;
-
- 
-    widthA = 4 * fontTop->width + fontTop->width / 2;
-    xStartA = (lcd.width - widthA) / 2;
-    xStartAT = (lcd.width - strlen(ID_MSG) * fontTop->width) / 2;
- 
-    widthB = 4 * fontBottom->width + fontBottom->width / 2;
-    xStartB = (lcd.width - widthB) / 2;
-    xStartBT = (lcd.width - strlen(TO_MSG) * fontBottom->width) / 2;
-    yStartTop = (lcd.height - fontTop->height - fontBottom->height) /3;
-    yStartA = twoTimers ? yStartTop : (lcd.height - fontTop->height) / 2;
-    yStartB = lcd.height - fontBottom->height - yStartTop;
-
     BacklightLevel(pwm);
 
     displayInit();
+    setSingle(!twoTimers);
 
-    // for (uint16_t t = 120; t; t--) {
-    //    displayTimeTop(t + 480);
-    //    displayTimeBottom(t);
-    // }
-
-    // displayTimeTop(600);
-    // clearTop();
-    // displayStringTop("<N8ME>");
-    // clearTop();
-    // displayTimeTop(600);
-    // clearTop();
-    // displayStringTop("ID");
-    // clearTop();
-    // displayTimeTop(600);
-    // clearTop();
-
-    // displayTimeBottom(600);
-    // displayStringBottom("<<N8ME>>");
-    // displayTimeBottom(600);
-    // displayStringBottom("ID");
-    // displayTimeBottom(600);
-
-    displayTimeTop(600);
-    displayTimeBottom(120);
-    setSingle(true);
-    setSingle(false);
-    setSingle(true);
-    displayStringTop("ID");
-    setSingle(false);
-    displayTimeTop(600);
-    displayStringBottom("TIMER A");
 }
 
 void loop() {
+    static bool inverse = false;
+
     if (do_clear_flash) {
         do_clear_flash = false;
         Invert(true);
