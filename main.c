@@ -4,17 +4,14 @@
 #include "LCD.h"
 #include "pico/stdlib.h"
 
-const uint8_t DEBOUNCE = 1;  // 125 Hz ticks
-const uint8_t FLASH_CTR = 1;  // 125 Hz ticks
+const uint8_t DEBOUNCE = 1;   // 125 mSec ticks for btn debounce
+const uint8_t FLASH_CTR = 1;  // 125 mSec ticks for btn detect flash
 const sFONT* fontA = &Liberation48;
 const sFONT* fontB = &Liberation36;
 const char* TO_MSG = "TIMEOUT";  // 8 char max w/ 36 pt
-const char* ID_MSG = "ID";  // 6 char max w / 48 pt
+const char* ID_MSG = "ID";       // 6 char max w/ 48 pt
 
 const uint8_t yStartTop = 10;
-
-
-
 
 // TBA: EEPROM
 const uint16_t CTRA = 600;
@@ -64,14 +61,13 @@ int gpio_index(uint8_t gpio) {
     }
 }
 
-struct IRQ_DATA {
+struct BTN_IRQ_DATA {
     uint32_t last_state;
     uint8_t ctr;
     bool triggered;
 };
 
-struct IRQ_DATA irq_data[KEY_COUNT];
-
+struct BTN_IRQ_DATA irq_data[KEY_COUNT];
 
 void gpio_irq(uint gpio, uint32_t events) {
     int8_t irq = gpio_index(gpio);
@@ -82,8 +78,7 @@ void gpio_irq(uint gpio, uint32_t events) {
     }
 }
 
-
-void init_irq(void) {
+void init_key_irq(void) {
     for (uint8_t i = 0; i<KEY_COUNT; i++) {
         irq_data[i].last_state = 0;
         irq_data[i].ctr = 0;
@@ -97,7 +92,6 @@ void init_irq(void) {
     gpio_set_irq_enabled(BTN_RIGHT_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
     gpio_set_irq_enabled(BTN_CTRL_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
 }
-
 
 bool repeating_timer_callback(struct repeating_timer *t) {
     if (in_flash_ctr) {
@@ -149,18 +143,18 @@ int main(void)
     InitLCD(HORIZONTAL);
     Clear(BACKGROUND);
 
-    init_irq();
+    init_key_irq();
 
     bool inverse = false;
  
     uint widthA = 4 * fontA->Width + fontA->Width / 2;
-    uint xStartA = (lcd.WIDTH - widthA) / 2;
-    uint xStartAT = (lcd.WIDTH - strlen(ID_MSG) * fontA->Width) / 2;
-    const uint yStartA = twoTimers ? yStartTop : (lcd.HEIGHT - fontA->Height) / 2;
+    uint xStartA = (lcd.width - widthA) / 2;
+    uint xStartAT = (lcd.width - strlen(ID_MSG) * fontA->Width) / 2;
+    const uint yStartA = twoTimers ? yStartTop : (lcd.height - fontA->Height) / 2;
 
     uint widthB = 4 * fontB->Width + fontB->Width / 2;
-    uint xStartB = (lcd.WIDTH - widthB) / 2;
-    uint xStartBT = (lcd.WIDTH - strlen(TO_MSG) * fontB->Width) / 2;
+    uint xStartB = (lcd.width - widthB) / 2;
+    uint xStartBT = (lcd.width - strlen(TO_MSG) * fontB->Width) / 2;
     
     uint16_t prev_ctrA;
     uint16_t prev_ctrB;
@@ -180,7 +174,7 @@ int main(void)
                 DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
                 prev_ctrA = ctrA;
             } else {
-                ClearWindow(BACKGROUND, 0, yStartA, lcd.WIDTH, fontA->Height);
+                ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontA->Height);
                 DrawString(xStartAT, yStartA, ID_MSG, fontA, A_FOREGROUND, BACKGROUND);
             }
        }
@@ -192,7 +186,7 @@ int main(void)
                 DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
                 prev_ctrB = ctrB;
             } else {
-                ClearWindow(BACKGROUND, 0, yStartB, lcd.WIDTH, fontB->Height);
+                ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->Height);
                 DrawString(xStartBT, yStartB, TO_MSG, fontB, B_FOREGROUND, BACKGROUND);
             }
         }
@@ -209,12 +203,12 @@ int main(void)
                 do_flash();
                 ctrA = CTRA;
                 prev_ctrA = 0;
-                ClearWindow(BACKGROUND, 0, yStartA, lcd.WIDTH, fontA->Height);
+                ClearWindow(BACKGROUND, 0, yStartA, lcd.width, fontA->Height);
                 DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
                 if (!ctrB) {
                     ctrB = CTRB;
                     prev_ctrB = 0;
-                    ClearWindow(BACKGROUND, 0, yStartB, lcd.WIDTH, fontB->Height);
+                    ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->Height);
                     DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
                 }
             }
@@ -225,7 +219,7 @@ int main(void)
                 do_flash();
                 ctrB = CTRB;
                 prev_ctrB = 0;
-                ClearWindow(BACKGROUND, 0, yStartB, lcd.WIDTH, fontB->Height);
+                ClearWindow(BACKGROUND, 0, yStartB, lcd.width, fontB->Height);
                 DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
             }
         }

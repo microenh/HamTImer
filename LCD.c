@@ -27,9 +27,8 @@
 #
 ******************************************************************************/
 #include <stdarg.h>
-#include "LCD.h"
 #include <stdio.h>
-
+#include "LCD.h"
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
 
@@ -142,38 +141,38 @@ function:	Set the resolution and scanning method of the screen
 parameter:
 		Scan_dir:   Scan direction
 ********************************************************************************/
-static void SetAttributes(uint8_t Scan_dir)
+static void SetAttributes(uint8_t scan_dir)
 {
     //Get the screen scan direction
-    lcd.SCAN_DIR = Scan_dir;
-    uint8_t MemoryAccessReg = 0x00;
+    lcd.scanDir = scan_dir;
+    uint8_t memoryAccessReg = 0x00;
 
     //Get GRAM and LCD width and height
-    if(Scan_dir == HORIZONTAL) {
-        lcd.HEIGHT	= LCD_1IN14_V2_WIDTH;
-        lcd.WIDTH   = LCD_1IN14_V2_HEIGHT;
-        MemoryAccessReg = 0X70;
+    if(scan_dir == HORIZONTAL) {
+        lcd.height	= LCD_1IN14_V2_WIDTH;
+        lcd.width   = LCD_1IN14_V2_HEIGHT;
+        memoryAccessReg = 0X70;
     } else {
-        lcd.HEIGHT	= LCD_1IN14_V2_HEIGHT;       
-        lcd.WIDTH   = LCD_1IN14_V2_WIDTH;
-        MemoryAccessReg = 0X00;
+        lcd.height	= LCD_1IN14_V2_HEIGHT;       
+        lcd.width   = LCD_1IN14_V2_WIDTH;
+        memoryAccessReg = 0X00;
     }
 
     // Set the read / write scan direction of the frame memory
-    SendCommandData(0x36, 1, MemoryAccessReg); //MX, MY, RGB mode (0x08 set RGB)
+    SendCommandData(0x36, 1, memoryAccessReg); //MX, MY, RGB mode (0x08 set RGB)
 }
 
 /********************************************************************************
 function :	Initialize the lcd
 parameter:
 ********************************************************************************/
-void InitLCD(uint8_t Scan_dir)
+void InitLCD(uint8_t scan_dir)
 {
     //Hardware reset
     Reset();
 
     //Set the resolution and scanning method of the screen
-    SetAttributes(Scan_dir);
+    SetAttributes(scan_dir);
     
     //Set the initialization register
     InitRegisters();
@@ -187,27 +186,27 @@ parameter:
 		Xend    :   X direction end coordinates
 		Yend    :   Y direction end coordinates
 ********************************************************************************/
-void SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend)
+void SetWindow(uint16_t x, uint16_t y, uint16_t xEnd, uint16_t yEnd)
 {
-    uint8_t x,y;
+    uint8_t base_x, base_y;
 
-    if(lcd.SCAN_DIR == HORIZONTAL){
-        x=40;
-        y=53;
+    if(lcd.scanDir == HORIZONTAL){
+        base_x=40;
+        base_y=53;
     } else {
-        x=52;
-        y=40;
+        base_x=52;
+        base_y=40;
     }
     
     //set the X coordinates
     SendCommand(0x2A); // CASET
     
-    SendData16Bit(Xstart + x);
-    SendData16Bit(Xend - 1 + x);
+    SendData16Bit(x + base_x);
+    SendData16Bit(xEnd - 1 + base_x);
     //set the Y coordinates
     SendCommand(0x2B);         // RASET
-    SendData16Bit(Ystart + y);
-    SendData16Bit(Yend - 1 + y);
+    SendData16Bit(y + base_y);
+    SendData16Bit(yEnd - 1 + base_y);
 
     SendCommand(0X2C);  // RAMWR
     // Debug("%d %d\r\n",x,y);
@@ -334,13 +333,13 @@ parameter:
     Color_Foreground : Select the foreground color
     Color_Background : Select the background color
 ******************************************************************************/
-void DrawString(uint16_t Xstart, uint16_t Ystart, const char *pString,
-                         const sFONT *Font, uint16_t Color_Foreground, uint16_t Color_Background)
+void DrawString(uint16_t x, uint16_t y, const char *pString,
+                         const sFONT *font, uint16_t foreground, uint16_t background)
 {
-    uint16_t Xpoint = Xstart;
-    uint16_t Ypoint = Ystart;
+    uint16_t Xpoint = x;
+    uint16_t Ypoint = y;
 
-    if (Xstart > lcd.WIDTH || Ystart > lcd.HEIGHT)
+    if (x > lcd.width || y > lcd.height)
     {
         Debug("Paint_DrawString Input exceeds the normal display range\r\n");
         return;
@@ -349,32 +348,32 @@ void DrawString(uint16_t Xstart, uint16_t Ystart, const char *pString,
     while (*pString != '\0')
     {
         // if X direction filled , reposition to(Xstart,Ypoint),Ypoint is Y direction plus the Height of the character
-        if ((Xpoint + Font->Width) > lcd.WIDTH)
+        if ((Xpoint + font->Width) > lcd.width)
         {
-            Xpoint = Xstart;
-            Ypoint += Font->Height;
+            Xpoint = x;
+            Ypoint += font->Height;
         }
 
         // If the Y direction is full, reposition to(Xstart, Ystart)
-        if ((Ypoint + Font->Height) > LCD_1IN14_V2_WIDTH)
+        if ((Ypoint + font->Height) > LCD_1IN14_V2_WIDTH)
         {
-            Xpoint = Xstart;
-            Ypoint = Ystart;
+            Xpoint = x;
+            Ypoint = y;
         }
-        DrawChar(Xpoint, Ypoint, Font, Color_Foreground, Color_Background, *pString);
+        DrawChar(Xpoint, Ypoint, font, foreground, background, *pString);
  
         // The next character of the address
         pString++;
 
         // The next word of the abscissa increases the font of the broadband
-        Xpoint += Font->Width;
+        Xpoint += font->Width;
     }
 }
 
-void DrawSeconds(uint16_t Xstart, uint16_t Ystart, uint16_t seconds, const sFONT *Font,
-                 uint16_t Color_Foreground, uint16_t Color_Background, uint16_t prev_seconds)
+void DrawSeconds(uint16_t x, uint16_t y, uint16_t seconds, const sFONT *font,
+                 uint16_t foreground, uint16_t background, uint16_t prev_seconds)
 {
-    uint16_t dx = Font->Width;
+    uint16_t dx = font->Width;
     
     uint8_t sec = seconds % 60;
     uint8_t prev_sec = prev_seconds % 60;
@@ -393,18 +392,18 @@ void DrawSeconds(uint16_t Xstart, uint16_t Ystart, uint16_t seconds, const sFONT
 
     // Update display where needed by digit
     if (!prev_seconds) {
-        DrawChar(Xstart + 7 * dx / 4, Ystart, Font, Color_Foreground, Color_Background, ':');
+        DrawChar(x + 7 * dx / 4, y, font, foreground, background, ':');
     }
     if (!prev_seconds || prev_min10 != min10) {
-        DrawChar(Xstart, Ystart, Font, Color_Foreground, Color_Background, min10 ? min10 + '0' : ' ');
+        DrawChar(x, y, font, foreground, background, min10 ? min10 + '0' : ' ');
     }
     if (!prev_seconds || prev_min01 != min01) {
-        DrawChar(Xstart + dx, Ystart, Font, Color_Foreground, Color_Background, min01 + '0');
+        DrawChar(x + dx, y, font, foreground, background, min01 + '0');
     }
     if (!prev_seconds || prev_sec10 != sec10) {
-        DrawChar(Xstart + 5 * dx / 2, Ystart, Font, Color_Foreground, Color_Background, sec10 + '0');
+        DrawChar(x + 5 * dx / 2, y, font, foreground, background, sec10 + '0');
     }
     if (!prev_seconds || prev_sec01 != sec01) {
-        DrawChar(Xstart + 7 * dx / 2, Ystart, Font, Color_Foreground, Color_Background, sec01 + '0');
+        DrawChar(x + 7 * dx / 2, y, font, foreground, background, sec01 + '0');
     }
 }
