@@ -216,15 +216,6 @@ void LCD_1IN14_V2_SetWindows(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, ui
 }
 
 /******************************************************************************
-function :	Clear screen
-parameter:
-******************************************************************************/
-void LCD_1IN14_V2_Clear(uint16_t Color)
-{
-    LCD_1IN14_V2_ClearWindow(Color, 0, 0, LCD_1IN14_V2.WIDTH, LCD_1IN14_V2.HEIGHT);
-}
-
-/******************************************************************************
 function :	Clear window
 parameter:
 		Xstart 	:   X direction Start coordinates
