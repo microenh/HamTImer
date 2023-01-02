@@ -56,6 +56,7 @@
 
 #define SPI_PORT spi1
 
+// Note: colors are designed for the LCD to be inverted (Invert(true))
 #define RGB_565(r,g,b) (((((r)) & 0xf8) << 8) | (((( g)) & 0xfc) << 3) | ((( b)) >> 3))
 
 #define BLACK    RGB_565(0,0,0)

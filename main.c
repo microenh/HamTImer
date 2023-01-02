@@ -141,6 +141,7 @@ int main(void)
     BacklightLevel(0);
     /* LCD Init */
     InitLCD(HORIZONTAL);
+    Invert(true);
     Clear(BACKGROUND);
 
     init_key_irq();

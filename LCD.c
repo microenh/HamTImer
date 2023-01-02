@@ -125,15 +125,14 @@ static void InitRegisters(void)
     SendCommandData(0xc6, 1, 0x0f);        // frame rate control in normal mode
     SendCommandData(0xd0, 2, 0xa4, 0xa1);  // power control 1
 
-    SendCommandData(0xe0, 14, //Positive Voltage Gamma Control
+    SendCommandData(0xe0, 14,              // Positive Voltage Gamma Control
         0xd0, 0x04, 0x0d, 0x11, 0x13, 0x2b, 0x3f, 0x54, 0x4c, 0x18, 0x0d, 0x0b, 0x1f, 0x23);
 
-    SendCommandData(0xe1, 14, //Negative Voltage Gamma Control
+    SendCommandData(0xe1, 14,              // Negative Voltage Gamma Control
         0xd0, 0x04, 0x0c, 0x11, 0x13, 0x2c, 0x3f, 0x44, 0x51, 0x2f, 0x1f, 0x1f, 0x20, 0x23);
 
-    SendCommand(0x21);  // Display Inversion: Off (0x20), On (0x21)
-    SendCommand(0x11);  // Sleep Out
-    SendCommand(0x29);  // Display On
+    SendCommand(0x11);                     // Sleep Out
+    SendCommand(0x29);                     // Display On
 }
 
 /********************************************************************************
