@@ -25,11 +25,11 @@ const uint8_t ctrl = 3;
 
 
 // TBA: EEPROM
-const uint16_t CTRA = 10;
-const uint16_t CTRB = 5;
+const uint16_t CTRA = 600;
+const uint16_t CTRB = 120;
 const uint8_t pwm = 5;
 const bool flash = true;
-const bool twoTimers = true;
+const bool twoTimers = false;
 
 
 // colors
@@ -234,10 +234,12 @@ int main(void)
                 ctrA = CTRA;
                 prev_ctrA = 0;
                 LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartA, LCD_1IN14_V2.WIDTH, fontA->Height);
+                Paint_DrawSeconds(xStartA, yStartA, ctrA, fontA, A_FOREGROUND, BACKGROUND, prev_ctrA);
                 if (!ctrB) {
                     ctrB = CTRB;
                     prev_ctrB = 0;
                     LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2.WIDTH, fontB->Height);
+                    Paint_DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
                 }
             }
         }
@@ -248,6 +250,7 @@ int main(void)
                 ctrB = CTRB;
                 prev_ctrB = 0;
                 LCD_1IN14_V2_ClearWindow(BACKGROUND, 0, yStartB, LCD_1IN14_V2.WIDTH, fontB->Height);
+                Paint_DrawSeconds(xStartB, yStartB, ctrB, fontB, B_FOREGROUND, BACKGROUND, prev_ctrB);
             }
         }
         if (irq_data[KEY_UP].triggered) {

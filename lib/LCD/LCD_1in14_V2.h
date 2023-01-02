@@ -35,24 +35,24 @@
 
 #define RGB_565(r,g,b) (((((r)) & 0xf8) << 8) | (((( g)) & 0xfc) << 3) | ((( b)) >> 3))
 
-#define BLACK          RGB_565(0,0,0)       // 0x0000
-#define RED            RGB_565(127,0,0)     // 0xF800
-#define BRED           RGB_565(255,0,0)     // 0XF81F
-#define GREEN          RGB_565(0,127,0)     // 0x07E0
-#define BGREEN         RGB_565(0,255,0)     // 0x07E0
-#define BLUE           RGB_565(0,0,127)     // 0x001F
-#define BBLUE          RGB_565(0,0,255)     // 0x001F
-#define CYAN           RGB_565(0,127,127)   // 0x7FFF
-#define BCYAN          RGB_565(0,255,255)   // 0x7FFF
-#define MAGENTA        RGB_565(127,0,127)   // 0xF81F
-#define BMAGENTA       RGB_565(255,0,255)   // 0xF81F
+#define BLACK          RGB_565(0,0,0)
+#define RED            RGB_565(127,0,0)    
+#define BRED           RGB_565(255,0,0)    
+#define GREEN          RGB_565(0,127,0)    
+#define BGREEN         RGB_565(0,255,0)    
+#define BLUE           RGB_565(0,0,127)    
+#define BBLUE          RGB_565(0,0,255)    
+#define CYAN           RGB_565(0,127,127)  
+#define BCYAN          RGB_565(0,255,255)  
+#define MAGENTA        RGB_565(127,0,127)  
+#define BMAGENTA       RGB_565(255,0,255)  
 #define YELLOW         RGB_565(127,127,0)
-#define BYELLOW        RGB_565(255,255,0)   // 0xFFE0
-#define GRAY           RGB_565(127,127,127) // 0X8430
-#define WHITE          RGB_565(255,255,255) // 0xFFFF
+#define BYELLOW        RGB_565(255,255,0)  
+#define GRAY           RGB_565(127,127,127)
+#define WHITE          RGB_565(255,255,255)
 
-#define ORANGE         RGB_565(255,127,0)   // 0XFFE0
-#define PINK           RGB_565(255,0,127)   // 0XFC07
+#define ORANGE         RGB_565(255,127,0)  
+#define PINK           RGB_565(255,0,127)  
 #define LGREEN         RGB_565(0,255,127)
 #define LBLUE          RGB_565(0,127,255)
 
@@ -75,12 +75,12 @@ typedef struct{
 extern LCD_1IN14_V2_ATTRIBUTES LCD_1IN14_V2;
 
 void LCD_1IN14_V2_Init(uint8_t Scan_dir);
-void LCD_1IN14_V2_Clear(uint16_t Color);
 
 // [mee] add on
 void LCD_1IN14_V2_Invert(bool invert);
 void LCD_1IN14_V2_Char(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const uint8_t character);
 void LCD_1IN14_V2_ClearWindow(uint16_t Color, uint16_t Xstart, uint16_t Ystart, uint16_t width, uint16_t height);
+#define LCD_1IN14_V2_Clear(Color) LCD_1IN14_V2_ClearWindow(Color, 0, 0, LCD_1IN14_V2.WIDTH, LCD_1IN14_V2.HEIGHT)
 
 #define LCD_RST_PIN  12
 #define LCD_DC_PIN   8
