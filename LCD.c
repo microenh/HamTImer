@@ -241,7 +241,7 @@ void DrawChar(const uint16_t x, const uint16_t y, const sFONT *font, const uint1
     if (index < 0) {
         ClearWindow(background, x, y, x + font->width, y + font->height);
     } else {
-        uint32_t offset = (character - ' ' - 1) * font->height * (font->width / 8 + (font->width % 8 ? 1 : 0));
+        uint32_t offset = index * font->height * (font->width / 8 + (font->width % 8 ? 1 : 0));
         uint8_t fg_low = foreground;
         uint8_t fg_high = foreground >> 8;
         uint8_t bg_low = background;
