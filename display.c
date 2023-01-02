@@ -182,32 +182,28 @@ void displayStringBottom(const char * pString) {
 
 }
 
-void clearTop(void) {
+static void clearTop(void) {
     uint8_t y = singleDisplay ? yMiddle : yTop;
     if (topLayout.time) {
         ClearWindow(BACKGROUND, topLayout.digitX[0], y, topLayout.timeLen, fontTop->height);
-        topLayout.time = false;
     } else {
         if (topLayout.count) {
             uint8_t len = topLayout.count * fontTop->width;
             uint8_t left = (lcd.width - len) / 2;
             ClearWindow(BACKGROUND, left, y, len, fontTop->height);
-            topLayout.count = 0;
         }
     }
 }
 
-void clearBottom(void) {
+static void clearBottom(void) {
     if (!singleDisplay) {
         if (bottomLayout.time) {
             ClearWindow(BACKGROUND, bottomLayout.digitX[0], yBottom, bottomLayout.timeLen, fontBottom->height);
-            bottomLayout.time = false;
         } else {
             if (bottomLayout.count) {
                 uint8_t len = bottomLayout.count * fontBottom->width;
                 uint8_t left = (lcd.width - len) / 2;
                 ClearWindow(BACKGROUND, left, yBottom, len, fontBottom->height);
-                bottomLayout.count = 0;
             }
         }
     }
@@ -229,19 +225,27 @@ static void redrawTop() {
 }
 
 static void redrawBottom() {
-
+    if (!singleDisplay) {
+        if (bottomLayout.time) {
+            DrawChar(bottomLayout.digitX[4], yBottom, fontBottom, BOTTOM_FOREGROUND, BACKGROUND, ':');
+            for (uint8_t i = 0; i < 4; i++) {
+                DrawChar(bottomLayout.digitX[i], yBottom, fontBottom, BOTTOM_FOREGROUND, BACKGROUND, bottomLayout.cache[i] + '0');
+            }
+        } else {
+            uint8_t left = (lcd.width - bottomLayout.count * fontBottom->width) / 2;
+            for (uint8_t i = 0; i < bottomLayout.count; i++) {
+                DrawChar(left + fontBottom->width * i, yBottom, fontBottom, BOTTOM_FOREGROUND, BACKGROUND, bottomLayout.cache[i]);
+            }
+        }
+    }
 }
 
 void setSingle(const bool single) {
     if (single != singleDisplay) {
         clearTop();
-        if (!singleDisplay) {
-            clearBottom();
-        }
+        clearBottom();
         singleDisplay = single;
         redrawTop();
-        if (!single) {
-            redrawBottom();
-        }
+        redrawBottom();
     }
 }
