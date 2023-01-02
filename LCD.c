@@ -32,7 +32,6 @@
 
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
-#include "Debug.h"
 
 LCD_Attributes lcd;
 uint8_t slice_num;  // for Backlight PWM

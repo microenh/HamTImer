@@ -103,4 +103,11 @@ void ClearWindow(uint16_t Color, uint16_t Xstart, uint16_t Ystart, uint16_t widt
 #define Clear(Color) ClearWindow(Color, 0, 0, lcd.WIDTH, lcd.HEIGHT)
 #define BacklightLevel(Value) pwm_set_chan_level(slice_num, PWM_CHAN_B, Value)
 
+#ifndef NDEBUG
+	#include <stdio.h>
+	#define Debug(__info,...) printf("Debug: " __info,##__VA_ARGS__)
+#else
+	#define Debug(__info,...)  
+#endif
+
 #endif // __LCD_H
