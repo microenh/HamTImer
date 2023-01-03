@@ -8,23 +8,21 @@
 
 
 // TBA: EEPROM
-const uint16_t CTRA = 10;
-const uint16_t CTRB = 5;
-const uint8_t pwm = 5;
-const bool flash = true;
-const bool twoTimers = true;
-
-
+uint16_t CTRA = 600;
+uint16_t CTRB = 120;
+uint8_t pwm = 5;
+bool flash = true;
 
 // updated by irq
-volatile uint16_t ctrA = CTRA;
-volatile uint16_t ctrB = CTRB;
+volatile uint16_t ctrA;
+volatile uint16_t ctrB;
 volatile bool do_tickA = false;
 volatile bool do_tickB = false;
 volatile bool do_invert = false;
 volatile bool in_flash_ctr = 0;
 volatile bool do_clear_flash = false;
 
+const char *off_on[] = {"OFF", "ON"};
 
 enum {
     KEY_NONE = -1,
@@ -120,7 +118,7 @@ bool heartbeat(struct repeating_timer *t) {
             } else {
                 do_invert = flash;
             }
-            if (twoTimers && ctrB) {
+            if (CTRB && ctrB) {
                 ctrB--;
                 do_tickB = true;
             }
@@ -136,27 +134,114 @@ void do_flash() {
 void do_btn_a(void) {
     do_flash();
     ctrA = CTRA;
-    if (twoTimers) {
-        displayStringTop("");
-        setSingle(false, true);
-    }
-    displayTimeTop(ctrA);
+    displayShowBottom(CTRB);
+    displayTime(true, ctrA);
     if (!ctrB) {
         ctrB = CTRB;
-        displayTimeBottom(ctrB);
+        displayTime(false, ctrB);
     }
 }
 
 void do_btn_b(void) {
-    if (twoTimers) {
+    if (CTRB) {
         do_flash();
         ctrB = CTRB;
-        displayTimeBottom(ctrB);
+        displayTime(false, ctrB);
     }
 }
 
-void do_btn_up(void) {}
-void do_btn_down(void) {}
+static void updateTimerA(const bool up) {
+    int16_t new = CTRA + (up ? 15 : -15);
+    if (new > (60 * 99)) {
+        new = 60 * 99;
+    } else if (new < 15) {
+        new = 15;
+    }
+    if (new != CTRA) {
+        CTRA = new;
+        ctrA = CTRA;
+        displayTime(true, CTRA);
+    }
+}
+
+static void updateTimerB(const bool up) {
+    int16_t new = CTRB + (up ? 15 : -15);
+    if (new > (60 * 99)) {
+        new = 60 * 99;
+    } else if (new < 0) {
+        new = 0;
+    }
+    if (new != CTRB) {
+        CTRB = new;
+        ctrB = CTRB;
+        displayTime(true, CTRB);
+    }
+
+}
+
+static char buffer[4];
+
+void valueStr(uint8_t value) {
+    uint8_t i = 0;
+    
+    uint8_t x = value / 100;
+    if (x) {
+        buffer[i++] = x + '0';
+    }
+    x = value % 100 / 10;
+    if (i || x) {
+        buffer[i++] = x + '0';
+    }
+    buffer[i++] = value % 10 + '0';
+    buffer[i] = 0;
+}
+
+static void toggleFlash(void) {
+    flash = !flash;
+    displayString(true, off_on[flash]);
+}
+
+static void updatePWM(const bool up) {
+    int16_t new = pwm + (up ? 1 : -1);
+
+    if (new > 100) {
+        new = 100;
+    } else if (new < 0) {
+        new = 0;
+    }
+    if (new != pwm) {
+        pwm = new;
+        valueStr(pwm);
+        displayString(true, buffer);
+        BacklightLevel(pwm);
+    }
+}
+
+static void do_up_down(const bool up) {
+    switch (oprMode) {
+        case OPR_TIMER_A:
+            updateTimerA(up);
+            break;
+        case OPR_TIMER_B:
+            updateTimerB(up);
+            break;
+        case OPR_FLASH:
+            toggleFlash();
+            break;
+        case OPR_PWM:
+            updatePWM(up);
+            break;
+    }   
+}
+
+void do_btn_up(void) {
+    do_up_down(true);
+}
+
+void do_btn_down(void) {
+    do_up_down(false);
+}
+
 void do_btn_left(void) {}
 void do_btn_right(void) {}
 
@@ -166,25 +251,38 @@ void do_btn_ctrl(void) {
     if (oprMode == OPR_COUNT) {
         oprMode = OPR_RUN;
     }
-    setSingle(oprMode == OPR_RUN && !twoTimers, false);
     switch (oprMode) {
         case OPR_RUN:
+            if (ctrA) {
+                displayShowBottom(CTRB);
+                displayTime(true, ctrA);
+            } else {
+                displayShowBottom(false);
+                displayString(true, ID_MSG);
+            }
+            if (ctrB) {
+                displayTime(false, ctrB);
+            } else {
+                displayString(false, TO_MSG);
+            }
             break;
         case OPR_TIMER_A:
-            displayTimeTop(CTRA);
-            displayStringBottom("TIMER A");
+            displayShowBottom(true);
+            displayTime(true, CTRA);
+            displayString(false, "TIMER A");
             break;
         case OPR_TIMER_B:
-            displayTimeTop(CTRB);
-            displayStringBottom("TIMER B");
+            displayTime(true, CTRB);
+            displayString(false, "TIMER B");
             break;
         case OPR_FLASH:
-            displayStringTop("ON");
-            displayStringBottom("FLASH");
+            displayString(true, off_on[flash]);
+            displayString(false, "FLASH");
             break;
         case OPR_PWM:
-            displayStringTop("5");
-            displayStringBottom("BKLGT");
+            valueStr(pwm);
+            displayString(true, buffer);
+            displayString(false, "BKLGT");
             break;
     }
 }
@@ -204,26 +302,28 @@ const void (*btn_handler[])(void) = {
 
 void tickA_handler(void) {
     if (ctrA) {
-        displayTimeTop(ctrA);
+        displayTime(true, ctrA);
     } else {
-        if (twoTimers) {
-            displayStringTop("");
-            setSingle(true, false);
+        if (CTRB) {
+            displayShowBottom(false);
         }
-        displayStringTop(ID_MSG);
+        displayString(true, ID_MSG);
     }
 }
 
 void tickB_handler(void) {
     if (ctrB) {
-        displayTimeBottom(ctrB);
+        displayTime(false, ctrB);
     } else {
-        displayStringBottom(TO_MSG);
+        displayString(false, TO_MSG);
     }
 }
 
 void setup() {
     static struct repeating_timer timer;
+
+    ctrA = CTRA;
+    ctrB = CTRB;
 
     set_sys_clock_48mhz();
     add_repeating_timer_ms(125, heartbeat, NULL, &timer);
@@ -241,8 +341,7 @@ void setup() {
     BacklightLevel(pwm);
 
     displayInit();
-    setSingle(!twoTimers, false);
-
+    displayShowBottom(CTRB);
 }
 
 void loop() {

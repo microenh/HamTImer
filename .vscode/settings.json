@@ -24,6 +24,7 @@
     "dev_config.h": "c",
     "*.tcc": "c",
     "limits": "c",
-    "stdint.h": "c"
+    "stdint.h": "c",
+    "config.h": "c"
   },
 }
