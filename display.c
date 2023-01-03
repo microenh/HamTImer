@@ -122,18 +122,18 @@ void displayStringTop(const char * pString) {
     if (topLayout.time || topLayout.count != count) {
         uint8_t oldlen = topLayout.time ? topLayout.timeLen : topLayout.count * fontTop->width;
         int8_t delta = (oldlen - newlen) / 2;
+        uint8_t oldleft = (lcd.width - oldlen) / 2;
 
         if (delta > 0) {
             // clear as needed - prefix
-            ClearWindow(BACKGROUND, topLayout.digitX[0], y, delta, fontTop->height);
-        }
+            ClearWindow(BACKGROUND, oldleft, y, delta, fontTop->height);        }
         for (uint8_t i = 0; i < count; i++) {
             topLayout.cache[i] = pString[i];
             DrawChar(left + fontTop->width * i, y, fontTop, TOP_FOREGROUND, BACKGROUND, pString[i]);
         }
         if (delta > 0) {
             // clear as needed - suffix
-            ClearWindow(BACKGROUND, left + newlen, y, delta, fontTop->height);
+            ClearWindow(BACKGROUND, oldleft + oldlen - delta, y, delta, fontTop->height);
         }
         topLayout.count = count;
         topLayout.time = false;
@@ -155,10 +155,11 @@ void displayStringBottom(const char * pString) {
         if (bottomLayout.time || bottomLayout.count != count) {
             uint8_t oldlen = bottomLayout.time ? bottomLayout.timeLen : bottomLayout.count * fontBottom->width;
             int8_t delta = (oldlen - newlen) / 2;
+            uint8_t oldleft = (lcd.width - oldlen) / 2;
 
             if (delta > 0) {
                 // clear as needed - prefix
-                ClearWindow(BACKGROUND, bottomLayout.digitX[0], yBottom, delta, fontBottom->height);
+                ClearWindow(BACKGROUND, oldleft, yBottom, delta, fontBottom->height);
             }
             for (uint8_t i = 0; i < count; i++) {
                 topLayout.cache[i] = pString[i];
@@ -166,7 +167,7 @@ void displayStringBottom(const char * pString) {
             }
             if (delta > 0) {
                 // clear as needed - suffix
-                ClearWindow(BACKGROUND, left + newlen, yBottom, delta, fontBottom->height);
+                ClearWindow(BACKGROUND, oldleft + oldlen - delta, yBottom, delta, fontBottom->height);
             }
             bottomLayout.count = count;
             bottomLayout.time = false;
@@ -240,12 +241,14 @@ static void redrawBottom() {
     }
 }
 
-void setSingle(const bool single) {
+void setSingle(const bool single, const bool redraw) {
     if (single != singleDisplay) {
         clearTop();
         clearBottom();
         singleDisplay = single;
-        redrawTop();
-        redrawBottom();
+        if (redraw) {
+           redrawTop();
+            redrawBottom();
+        }
     }
 }

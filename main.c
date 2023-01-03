@@ -8,11 +8,11 @@
 
 
 // TBA: EEPROM
-const uint16_t CTRA = 600;
-const uint16_t CTRB = 120;
+const uint16_t CTRA = 10;
+const uint16_t CTRB = 5;
 const uint8_t pwm = 5;
 const bool flash = true;
-const bool twoTimers = false;
+const bool twoTimers = true;
 
 
 
@@ -83,6 +83,17 @@ void init_key_irq(void) {
     gpio_set_irq_enabled(BTN_CTRL_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
 }
 
+enum OPR_MODE {
+    OPR_RUN,
+    OPR_TIMER_A,
+    OPR_TIMER_B,
+    OPR_FLASH,
+    OPR_PWM,
+    OPR_COUNT
+};
+
+enum OPR_MODE oprMode = OPR_RUN;
+
 bool heartbeat(struct repeating_timer *t) {
     static uint8_t tick_ctr = 7;
 
@@ -102,15 +113,17 @@ bool heartbeat(struct repeating_timer *t) {
 
     if (!--tick_ctr) {
         tick_ctr = 7;
-        if (ctrA) {
-            ctrA--;
-            do_tickA = true;
-        } else {
-            do_invert = flash;
-        }
-        if (twoTimers && ctrB) {
-            ctrB--;
-            do_tickB = true;
+        if (oprMode == OPR_RUN) {
+            if (ctrA) {
+                ctrA--;
+                do_tickA = true;
+            } else {
+                do_invert = flash;
+            }
+            if (twoTimers && ctrB) {
+                ctrB--;
+                do_tickB = true;
+            }
         }
     }
 }
@@ -125,7 +138,7 @@ void do_btn_a(void) {
     ctrA = CTRA;
     if (twoTimers) {
         displayStringTop("");
-        setSingle(false);
+        setSingle(false, true);
     }
     displayTimeTop(ctrA);
     if (!ctrB) {
@@ -146,7 +159,37 @@ void do_btn_up(void) {}
 void do_btn_down(void) {}
 void do_btn_left(void) {}
 void do_btn_right(void) {}
-void do_btn_ctrl(void) {}
+
+void do_btn_ctrl(void) {
+    oprMode++;
+    Invert(true);
+    if (oprMode == OPR_COUNT) {
+        oprMode = OPR_RUN;
+    }
+    setSingle(oprMode == OPR_RUN && !twoTimers, false);
+    switch (oprMode) {
+        case OPR_RUN:
+            break;
+        case OPR_TIMER_A:
+            displayTimeTop(CTRA);
+            displayStringBottom("TIMER A");
+            break;
+        case OPR_TIMER_B:
+            displayTimeTop(CTRB);
+            displayStringBottom("TIMER B");
+            break;
+        case OPR_FLASH:
+            displayStringTop("ON");
+            displayStringBottom("FLASH");
+            break;
+        case OPR_PWM:
+            displayStringTop("5");
+            displayStringBottom("BKLGT");
+            break;
+    }
+}
+
+
 
 const void (*btn_handler[])(void) = {
     &do_btn_a,
@@ -165,7 +208,7 @@ void tickA_handler(void) {
     } else {
         if (twoTimers) {
             displayStringTop("");
-            setSingle(true);
+            setSingle(true, false);
         }
         displayStringTop(ID_MSG);
     }
@@ -198,7 +241,7 @@ void setup() {
     BacklightLevel(pwm);
 
     displayInit();
-    setSingle(!twoTimers);
+    setSingle(!twoTimers, false);
 
 }
 
@@ -221,7 +264,7 @@ void loop() {
         tickB_handler();
     }
 
-    if (do_invert) {
+    if (do_invert && oprMode == OPR_RUN) {
         do_invert = false;
         Invert(inverse);
         inverse = !inverse;
