@@ -28,6 +28,7 @@
 ******************************************************************************/
 #include <stdarg.h>
 #include <stdio.h>
+#include "debug.h"
 #include "lcd.h"
 #include "pico/stdlib.h"
 #include "hardware/spi.h"

@@ -341,19 +341,6 @@ void setup() {
 
     displayInit();
     displayShowBottom(settings.CTRB);
-
-#if 0
-    #define FLASH_TARGET_OFFSET (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
-    int addr = XIP_BASE + FLASH_TARGET_OFFSET;
-
-    READER buf[FLASH_PAGE_SIZE / sizeof(READER)];
-
-    for (int i=0; i<FLASH_PAGE_SIZE / sizeof(READER); i++) {
-        buf[i].i = -1;
-    }
-    buf[2].s = settings;
-    flash_range_program((PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE), (uint8_t *) buf, FLASH_PAGE_SIZE);
-#endif
 }
 
 void loop() {
