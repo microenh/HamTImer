@@ -9,9 +9,10 @@ add_subdirectory(fonts)
 # Executable
 add_executable(main 
     main.c
-    lcd.c
     display.c
     config.c
+    flash.c
+    lcd.c
 )
 
 # enable usb output, disable uart output
@@ -25,5 +26,6 @@ target_link_libraries(main
     pico_stdlib
     hardware_spi
     hardware_pwm
+    hardware_flash
     fonts
 )

@@ -1,17 +1,15 @@
 ﻿#include <string.h>
 #include <stdint.h>
 
-#include "lcd.h"
-#include "display.h"
 #include "config.h"
+#include "display.h"
+#include "flash.h"
+#include "lcd.h"
 #include "pico/stdlib.h"
 
 
-// TBA: EEPROM
-uint16_t CTRA = 600;
-uint16_t CTRB = 120;
-uint8_t pwm = 5;
-bool flash = true;
+
+
 
 // updated by irq
 volatile uint16_t ctrA;
@@ -116,9 +114,9 @@ bool heartbeat(struct repeating_timer *t) {
                 ctrA--;
                 do_tickA = true;
             } else {
-                do_invert = flash;
+                do_invert = settings.flash;
             }
-            if (CTRB && ctrB) {
+            if (settings.CTRB && ctrB) {
                 ctrB--;
                 do_tickB = true;
             }
@@ -133,48 +131,48 @@ void do_flash() {
 
 void do_btn_a(void) {
     do_flash();
-    ctrA = CTRA;
-    displayShowBottom(CTRB);
+    ctrA = settings.CTRA;
+    displayShowBottom(settings.CTRB);
     displayTime(true, ctrA);
     if (!ctrB) {
-        ctrB = CTRB;
+        ctrB = settings.CTRB;
         displayTime(false, ctrB);
     }
 }
 
 void do_btn_b(void) {
-    if (CTRB) {
+    if (settings.CTRB) {
         do_flash();
-        ctrB = CTRB;
+        ctrB = settings.CTRB;
         displayTime(false, ctrB);
     }
 }
 
 static void updateTimerA(const bool up) {
-    int16_t new = CTRA + (up ? 15 : -15);
+    int16_t new = settings.CTRA + (up ? 15 : -15);
     if (new > (60 * 99)) {
         new = 60 * 99;
     } else if (new < 15) {
         new = 15;
     }
-    if (new != CTRA) {
-        CTRA = new;
-        ctrA = CTRA;
-        displayTime(true, CTRA);
+    if (new != settings.CTRA) {
+        settings.CTRA = new;
+        ctrA = new;
+        displayTime(true, new);
     }
 }
 
 static void updateTimerB(const bool up) {
-    int16_t new = CTRB + (up ? 15 : -15);
+    int16_t new = settings.CTRB + (up ? 15 : -15);
     if (new > (60 * 99)) {
         new = 60 * 99;
     } else if (new < 0) {
         new = 0;
     }
-    if (new != CTRB) {
-        CTRB = new;
-        ctrB = CTRB;
-        displayTime(true, CTRB);
+    if (new != settings.CTRB) {
+        settings.CTRB = new;
+        ctrB = new;
+        displayTime(true, new);
     }
 
 }
@@ -197,23 +195,23 @@ void valueStr(uint8_t value) {
 }
 
 static void toggleFlash(void) {
-    flash = !flash;
-    displayString(true, off_on[flash]);
+    settings.flash = !settings.flash;
+    displayString(true, off_on[settings.flash]);
 }
 
 static void updatePWM(const bool up) {
-    int16_t new = pwm + (up ? 1 : -1);
+    int16_t new = settings.pwm + (up ? 1 : -1);
 
     if (new > 100) {
         new = 100;
-    } else if (new < 0) {
-        new = 0;
+    } else if (new < 1) {
+        new = 1;
     }
-    if (new != pwm) {
-        pwm = new;
-        valueStr(pwm);
+    if (new != settings.pwm) {
+        settings.pwm = new;
+        valueStr(new);
         displayString(true, buffer);
-        BacklightLevel(pwm);
+        BacklightLevel(new);
     }
 }
 
@@ -253,8 +251,9 @@ void do_btn_ctrl(void) {
     }
     switch (oprMode) {
         case OPR_RUN:
+            writeFlash();
             if (ctrA) {
-                displayShowBottom(CTRB);
+                displayShowBottom(settings.CTRB);
                 displayTime(true, ctrA);
             } else {
                 displayShowBottom(false);
@@ -268,19 +267,19 @@ void do_btn_ctrl(void) {
             break;
         case OPR_TIMER_A:
             displayShowBottom(true);
-            displayTime(true, CTRA);
+            displayTime(true, settings.CTRA);
             displayString(false, "TIMER A");
             break;
         case OPR_TIMER_B:
-            displayTime(true, CTRB);
+            displayTime(true, settings.CTRB);
             displayString(false, "TIMER B");
             break;
         case OPR_FLASH:
-            displayString(true, off_on[flash]);
+            displayString(true, off_on[settings.flash]);
             displayString(false, "FLASH");
             break;
         case OPR_PWM:
-            valueStr(pwm);
+            valueStr(settings.pwm);
             displayString(true, buffer);
             displayString(false, "BKLGT");
             break;
@@ -304,7 +303,7 @@ void tickA_handler(void) {
     if (ctrA) {
         displayTime(true, ctrA);
     } else {
-        if (CTRB) {
+        if (settings.CTRB) {
             displayShowBottom(false);
         }
         displayString(true, ID_MSG);
@@ -322,13 +321,13 @@ void tickB_handler(void) {
 void setup() {
     static struct repeating_timer timer;
 
-    ctrA = CTRA;
-    ctrB = CTRB;
-
     set_sys_clock_48mhz();
     add_repeating_timer_ms(125, heartbeat, NULL, &timer);
-    
     InitHardware();
+    
+    readFlash();
+    ctrA = settings.CTRA;
+    ctrB = settings.CTRB;
 
     BacklightLevel(0);
     /* LCD Init */
@@ -338,10 +337,23 @@ void setup() {
 
     init_key_irq();
 
-    BacklightLevel(pwm);
+    BacklightLevel(settings.pwm);
 
     displayInit();
-    displayShowBottom(CTRB);
+    displayShowBottom(settings.CTRB);
+
+#if 0
+    #define FLASH_TARGET_OFFSET (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
+    int addr = XIP_BASE + FLASH_TARGET_OFFSET;
+
+    READER buf[FLASH_PAGE_SIZE / sizeof(READER)];
+
+    for (int i=0; i<FLASH_PAGE_SIZE / sizeof(READER); i++) {
+        buf[i].i = -1;
+    }
+    buf[2].s = settings;
+    flash_range_program((PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE), (uint8_t *) buf, FLASH_PAGE_SIZE);
+#endif
 }
 
 void loop() {
