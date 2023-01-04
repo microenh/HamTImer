@@ -38,9 +38,10 @@ bool check(const SETTINGS s) {
 // PICO_FLASH_SIZE_BYTES (2 * 1024 * 1024)
 // FLASH_SECTOR_SIZE (1 << 12) 4096
 // FLASH_PAGE_SIZE (1<< 8) 256
-const uint16_t MAX_SAVES = FLASH_SECTOR_SIZE / sizeof (READER);
-const uint16_t SAVES_PER_SECTOR = FLASH_PAGE_SIZE / sizeof(READER);
+const uint16_t DATA_PER_SECTOR = FLASH_PAGE_SIZE / sizeof(READER);
 const uint32_t FLASH_TARGET_OFFSET = (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE);
+const uint16_t MAX_SAVES = FLASH_SECTOR_SIZE / sizeof (READER);
+const uint16_t SAVES_PER_SECTOR = DATA_PER_SECTOR; 
 
 void readFlash(void) {
     int addr = XIP_BASE + FLASH_TARGET_OFFSET;
@@ -79,8 +80,8 @@ static bool settingsChanged(const SETTINGS settings1, const SETTINGS settings2) 
 }
 
 void writeFlash(void) {
-    READER buf[SAVES_PER_SECTOR];
-    for (int i = 0; i< SAVES_PER_SECTOR; i++) {
+    READER buf[DATA_PER_SECTOR];
+    for (int i = 0; i< DATA_PER_SECTOR; i++) {
         buf[i].i = -1;
     }
     int flashPage = flashIndex / SAVES_PER_SECTOR;
