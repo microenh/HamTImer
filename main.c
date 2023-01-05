@@ -148,10 +148,12 @@ void do_btn_b(void) {
     }
 }
 
-static void updateTimerA(const bool up) {
-    int16_t new = settings.CTRA + (up ? 15 : -15);
-    if (new > (60 * 99)) {
-        new = 60 * 99;
+const uint16_t MAX_TIME = 68 * 60;
+
+static void updateTimerA(const bool up, const uint16_t amount) {
+    int16_t new = settings.CTRA + (up ? amount : -amount);
+    if (new > MAX_TIME) {
+        new = MAX_TIME;
     } else if (new < 15) {
         new = 15;
     }
@@ -162,10 +164,10 @@ static void updateTimerA(const bool up) {
     }
 }
 
-static void updateTimerB(const bool up) {
-    int16_t new = settings.CTRB + (up ? 15 : -15);
-    if (new > (60 * 99)) {
-        new = 60 * 99;
+static void updateTimerB(const bool up, const uint16_t amount) {
+    int16_t new = settings.CTRB + (up ? amount : -amount);
+    if (new > MAX_TIME) {
+        new = MAX_TIME;
     } else if (new < 0) {
         new = 0;
     }
@@ -215,13 +217,16 @@ static void updatePWM(const bool up) {
     }
 }
 
+const uint16_t SMALL_INC = 15;
+const uint16_t LARGE_INC = 60 * 10;
+
 static void do_up_down(const bool up) {
     switch (oprMode) {
         case OPR_TIMER_A:
-            updateTimerA(up);
+            updateTimerA(up, SMALL_INC);
             break;
         case OPR_TIMER_B:
-            updateTimerB(up);
+            updateTimerB(up, SMALL_INC);
             break;
         case OPR_FLASH:
             toggleFlash();
@@ -232,6 +237,16 @@ static void do_up_down(const bool up) {
     }   
 }
 
+static void do_left_right(const bool up) {
+    switch (oprMode) {
+        case OPR_TIMER_A:
+            updateTimerA(up, LARGE_INC);
+            break;
+        case OPR_TIMER_B:
+            updateTimerB(up, LARGE_INC);
+            break;
+    }   
+}
 void do_btn_up(void) {
     do_up_down(true);
 }
@@ -240,8 +255,13 @@ void do_btn_down(void) {
     do_up_down(false);
 }
 
-void do_btn_left(void) {}
-void do_btn_right(void) {}
+void do_btn_left(void) {
+    do_left_right(true);
+}
+
+void do_btn_right(void) {
+    do_left_right(false);
+}
 
 void do_btn_ctrl(void) {
     oprMode++;
