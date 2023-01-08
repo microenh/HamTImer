@@ -1,4 +1,4 @@
 _deps
 /build/**
 .DS_Store
-!/build/main.uf2
+!/build/hamtimer.uf2
