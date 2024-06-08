@@ -235,7 +235,7 @@ void ClearWindow(uint16_t Color, uint16_t Xstart, uint16_t Ystart, uint16_t widt
     gpio_put(LCD_CS_PIN, 1);
 }
 
-void DrawChar(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const u_char character)
+void DrawChar(const uint16_t x, const uint16_t y, const sFONT *font, const uint16_t foreground, const uint16_t background, const unsigned char character)
 {
     int8_t index = (character - '!');
 
